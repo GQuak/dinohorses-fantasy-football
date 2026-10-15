@@ -1,8 +1,8 @@
 import { COMPARE_COLORS } from "@/lib/compareColors";
 import type { PowerRankingEntry } from "@/lib/types";
 
-// Full team-by-team leaderboard below the two charts: every team across
-// both leagues, sorted by the same overall Power Score, with the two
+// Full team-by-team leaderboard below the two charts: every team in the
+// league, sorted by the same overall Power Score, with the two
 // selected teams (A/B) picked out in their chart colors so it's easy to
 // see where they land among everyone else, not just against each other.
 export default function PowerRankings({
@@ -25,18 +25,16 @@ export default function PowerRankings({
       <h3 className="mb-1 font-semibold">Power Rankings</h3>
       <p className="mb-3 text-xs text-neutral-500">
         Every team&apos;s {periodLabel} Power Score: the weighted average of its Position Strength
-        rank (as a percentile of its own league) across QB / RB / WR / TE / FLEX / D-ST / K -- RB
+        rank (as a percentile of the league) across QB / RB / WR / TE / FLEX / D-ST / K -- RB
         and WR count double every other position. 100 = #1 at every position, 0 = last at every
         position.
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[420px] text-sm">
+        <table className="w-full min-w-[320px] text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-neutral-500">
             <tr>
               <th className="py-1.5 pr-2">Rank</th>
               <th className="py-1.5 pr-2">Team</th>
-              <th className="py-1.5 pr-2">League</th>
-              <th className="py-1.5 pr-2 text-right">Lg Rank</th>
               <th className="py-1.5 pr-2 text-right">Score</th>
             </tr>
           </thead>
@@ -62,10 +60,6 @@ export default function PowerRankings({
                       <span className="truncate">{row.teamName}</span>
                     </span>
                   </td>
-                  <td className="py-1.5 pr-2 text-neutral-500">{row.leagueShort}</td>
-                  <td className="py-1.5 pr-2 text-right tabular-nums text-neutral-500">
-                    #{row.leagueRank}
-                  </td>
                   <td className="py-1.5 pr-2 text-right font-semibold tabular-nums">
                     {row.score.toFixed(1)}
                   </td>
@@ -74,7 +68,7 @@ export default function PowerRankings({
             })}
             {rankings.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-neutral-500">
+                <td colSpan={3} className="py-6 text-center text-neutral-500">
                   No teams to rank yet.
                 </td>
               </tr>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { COMPARE_COLORS } from "@/lib/compareColors";
 import type { RecapCard, RecapTeamRow, WeeklyRecap } from "@/lib/recapData";
 
 // Same fixed scale as the diff bars everywhere else in this app -- large
@@ -45,7 +44,7 @@ function DiffCell({ diff }: { diff: number }) {
   );
 }
 
-function ConferenceTable({ teams }: { teams: RecapTeamRow[] }) {
+function TeamsTable({ teams }: { teams: RecapTeamRow[] }) {
   return (
     <div className="overflow-x-auto">
       {/* table-layout: fixed + an explicit colgroup, not auto layout --
@@ -171,7 +170,7 @@ export default function WeeklyRecapView({
       <div className="mb-4">
         <h2 className="text-xl font-semibold">Week {recap.week} Recap</h2>
         <p className="text-sm text-neutral-500">
-          Who beat their number and who bombed it, across both divisions.
+          Who beat their number and who bombed it.
         </p>
       </div>
 
@@ -180,13 +179,13 @@ export default function WeeklyRecapView({
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Top Score, League-Wide
+            Top Score
           </div>
           <div className="mt-1 text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
             {headline.topScore.toFixed(1)}
           </div>
           <div className="mt-1 text-sm text-neutral-500">
-            {headline.topScoreTeam} · {headline.topScoreLeague}
+            {headline.topScoreTeam}
           </div>
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -197,7 +196,7 @@ export default function WeeklyRecapView({
             +{headline.biggestBeat.toFixed(1)}
           </div>
           <div className="mt-1 text-sm text-neutral-500">
-            {headline.biggestBeatTeam} · {headline.biggestBeatLeague}
+            {headline.biggestBeatTeam}
           </div>
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -208,46 +207,25 @@ export default function WeeklyRecapView({
             {headline.biggestBust.toFixed(1)}
           </div>
           <div className="mt-1 text-sm text-neutral-500">
-            {headline.biggestBustTeam} · {headline.biggestBustLeague}
+            {headline.biggestBustTeam}
           </div>
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-          <div className={`h-1 ${COMPARE_COLORS.a.bar}`} />
-          <div className="flex items-center justify-between px-4 pt-3">
-            <h3 className={`font-semibold ${COMPARE_COLORS.a.text}`}>East</h3>
-            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              12 teams
-            </span>
-          </div>
-          <div className="mt-2">
-            <ConferenceTable teams={recap.east.teams} />
-          </div>
-          <div className="space-y-2 border-t border-neutral-100 px-4 py-3 text-sm text-neutral-500 dark:border-neutral-900">
-            {recap.east.notes.map((note, i) => (
-              <p key={i}>{note}</p>
-            ))}
-          </div>
+      <div className="mb-6 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex items-center justify-between px-4 pt-3">
+          <h3 className="font-semibold">Results</h3>
+          <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            {recap.teams.length} teams
+          </span>
         </div>
-
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-          <div className={`h-1 ${COMPARE_COLORS.b.bar}`} />
-          <div className="flex items-center justify-between px-4 pt-3">
-            <h3 className={`font-semibold ${COMPARE_COLORS.b.text}`}>West</h3>
-            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              12 teams
-            </span>
-          </div>
-          <div className="mt-2">
-            <ConferenceTable teams={recap.west.teams} />
-          </div>
-          <div className="space-y-2 border-t border-neutral-100 px-4 py-3 text-sm text-neutral-500 dark:border-neutral-900">
-            {recap.west.notes.map((note, i) => (
-              <p key={i}>{note}</p>
-            ))}
-          </div>
+        <div className="mt-2">
+          <TeamsTable teams={recap.teams} />
+        </div>
+        <div className="space-y-2 border-t border-neutral-100 px-4 py-3 text-sm text-neutral-500 dark:border-neutral-900">
+          {recap.notes.map((note, i) => (
+            <p key={i}>{note}</p>
+          ))}
         </div>
       </div>
 

@@ -23,7 +23,7 @@ import type {
   CumulativePointsData,
   DashboardData,
   League,
-  LeagueRosterSpot,
+  RosterSpot,
   PoolPlayer,
   PositionAxisRank,
   RankedPlayer,
@@ -33,7 +33,7 @@ import type {
 } from "./types";
 
 // How many of the highest-owned NFL players to pull in for Player
-// Rankings, beyond whatever's already rostered in your two leagues.
+// Rankings, beyond whatever's already rostered in your league.
 const PLAYER_POOL_LIMIT = 300;
 
 interface LeagueConfig {
@@ -44,29 +44,16 @@ interface LeagueConfig {
 }
 
 function getLeagueConfigs(): LeagueConfig[] {
-  const configs: LeagueConfig[] = [];
-  const l1Id = process.env.LEAGUE_1_ID;
-  const l2Id = process.env.LEAGUE_2_ID;
-
-  if (l1Id) {
-    configs.push({
-      id: l1Id,
-      name: process.env.LEAGUE_1_NAME || "League 1",
+  const id = process.env.LEAGUE_1_ID;
+  if (!id) return [];
+  return [
+    {
+      id,
+      name: process.env.LEAGUE_1_NAME || "My League",
       espnS2: process.env.ESPN_S2,
       swid: process.env.ESPN_SWID,
-    });
-  }
-  if (l2Id) {
-    configs.push({
-      id: l2Id,
-      name: process.env.LEAGUE_2_NAME || "League 2",
-      // Falls back to the shared credentials; override only if the two
-      // leagues belong to different ESPN accounts.
-      espnS2: process.env.LEAGUE_2_ESPN_S2 || process.env.ESPN_S2,
-      swid: process.env.LEAGUE_2_SWID || process.env.ESPN_SWID,
-    });
-  }
-  return configs;
+    },
+  ];
 }
 
 function seasonYear(): number {
@@ -75,8 +62,8 @@ function seasonYear(): number {
 }
 
 /**
- * Loads both leagues. Falls back to bundled demo data when no league IDs
- * are configured yet, so the dashboard is browsable out of the box.
+ * Loads the league. Falls back to bundled demo data when no league ID is
+ * configured yet, so the dashboard is browsable out of the box.
  */
 export async function getDashboardData(): Promise<DashboardData> {
   const configs = getLeagueConfigs();
@@ -112,10 +99,10 @@ export async function getDashboardData(): Promise<DashboardData> {
 }
 
 /**
- * Builds the full Player Rankings list: every rostered player across both
- * leagues, plus the wider NFL free-agent pool (top `PLAYER_POOL_LIMIT` by
+ * Builds the full Player Rankings list: every rostered player in the
+ * league, plus the wider NFL free-agent pool (top `PLAYER_POOL_LIMIT` by
  * ESPN-wide ownership). `leagues` should come from getDashboardData() so
- * roster status/league/team can be cross-referenced onto the pool.
+ * roster status/team can be cross-referenced onto the pool.
  */
 export async function getPlayerPool(
   leagues: League[],
@@ -131,14 +118,9 @@ export async function getPlayerPool(
   }
 
   const year = seasonYear();
-  // Player stats/ownership aren't league-specific -- any one league's
-  // credentials are enough to read the whole pool.
   const cfg = configs[0];
 
-  // A player can be rostered in one of your leagues and a free agent in
-  // the other (they're independent), so this maps to an array of spots,
-  // not a single one.
-  const rosterIndex = new Map<number, LeagueRosterSpot[]>();
+  const rosterIndex = new Map<number, RosterSpot>();
   // Also keep one full RosterPlayer record per id, as a source for
   // name/position/stats when a rostered player didn't land in the pool
   // fetch below.
@@ -146,16 +128,11 @@ export async function getPlayerPool(
   for (const league of leagues) {
     for (const team of league.teams) {
       for (const player of team.roster) {
-        const spot: LeagueRosterSpot = {
-          leagueId: league.leagueId,
-          leagueName: league.name,
+        rosterIndex.set(player.playerId, {
           teamName: team.name,
           ownerNames: team.ownerNames,
           lineupSlot: player.lineupSlot,
-        };
-        const existing = rosterIndex.get(player.playerId);
-        if (existing) existing.push(spot);
-        else rosterIndex.set(player.playerId, [spot]);
+        });
         rosterPlayerById.set(player.playerId, player);
       }
     }
@@ -181,19 +158,19 @@ export async function getPlayerPool(
   const players: RankedPlayer[] = [];
 
   for (const p of poolPlayers) {
-    const rosters = rosterIndex.get(p.playerId) ?? [];
+    const rosterSpot = rosterIndex.get(p.playerId) ?? null;
     seen.add(p.playerId);
     players.push({
       ...p,
-      isRostered: rosters.length > 0,
-      rosters,
+      isRostered: rosterSpot !== null,
+      rosterSpot,
     });
   }
 
   // Any rostered player who didn't happen to land in the top-N-by-ownership
   // pool fetch (rare -- e.g. a very low-ownership deep stash) still needs
-  // to show up, since they're relevant to your leagues either way.
-  for (const [playerId, rosters] of rosterIndex) {
+  // to show up, since they're relevant to your league either way.
+  for (const [playerId, rosterSpot] of rosterIndex) {
     if (seen.has(playerId)) continue;
     seen.add(playerId);
     const rp = rosterPlayerById.get(playerId);
@@ -210,7 +187,7 @@ export async function getPlayerPool(
       avgPoints: rp.avgPoints,
       percentOwned: 0,
       isRostered: true,
-      rosters,
+      rosterSpot,
     });
   }
 

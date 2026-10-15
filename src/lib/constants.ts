@@ -112,14 +112,6 @@ export const PRO_TEAM_MAP: Record<number, string> = {
   34: "HOU",
 };
 
-// Short label for a league's full display name, e.g. "Adswerve League -
-// EAST" -> "EAST". Falls back to the full name for a league name that
-// doesn't follow the "<name> - <short>" convention (no dash to split on).
-export function leagueShortName(name: string): string {
-  const idx = name.lastIndexOf("-");
-  return idx === -1 ? name : name.slice(idx + 1).trim();
-}
-
 export function positionName(defaultPositionId: number): string {
   return DEFAULT_POSITION_MAP[defaultPositionId] ?? `POS ${defaultPositionId}`;
 }

@@ -10,8 +10,23 @@ export default async function StandingsPage({
 }) {
   const sp = await searchParams;
   const { leagues, isDemoData, errors } = await getDashboardData();
+  const league = leagues[0] ?? null;
 
-  const totalWeeks = leagues[0]?.totalWeeks ?? 17;
+  if (!league) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        {isDemoData && <DemoBanner />}
+        <ErrorBanner errors={errors} />
+        <h2 className="mb-2 text-lg font-semibold">Standings</h2>
+        <p className="text-sm text-neutral-500">
+          No league data available. Check the error banner above and your environment
+          configuration.
+        </p>
+      </div>
+    );
+  }
+
+  const totalWeeks = league.totalWeeks;
   const requested = Number(sp.week);
   const week: number | "season" =
     sp.week && sp.week !== "season" && Number.isFinite(requested)
@@ -19,61 +34,50 @@ export default async function StandingsPage({
       : "season";
 
   // Weekly total = sum of a team's STARTERS' projected points for that
-  // week (bench/IR don't count toward a team's score). One fetch per
-  // league covers every team in it, rather than one call per team.
-  let weeklyTotals: Map<string, number> | null = null;
-  const weeklyErrors: { leagueName: string; message: string }[] = [];
+  // week (bench/IR don't count toward a team's score). One fetch covers
+  // every team in the league, rather than one call per team.
+  let weeklyTotals: Map<number, number> | null = null;
+  const pageErrors = [...errors];
 
   if (week !== "season") {
     weeklyTotals = new Map();
-    for (const league of leagues) {
-      const starterIds = league.teams.flatMap((t) =>
-        t.roster
-          .filter((p) => p.lineupSlot !== "Bench" && p.lineupSlot !== "IR")
-          .map((p) => p.playerId)
-      );
-      const { points, error } = await getTeamWeeklyPoints(
-        league.leagueId,
-        starterIds,
-        week,
-        isDemoData
-      );
-      if (error) weeklyErrors.push({ leagueName: league.name, message: error });
+    const starterIds = league.teams.flatMap((t) =>
+      t.roster
+        .filter((p) => p.lineupSlot !== "Bench" && p.lineupSlot !== "IR")
+        .map((p) => p.playerId)
+    );
+    const { points, error } = await getTeamWeeklyPoints(
+      league.leagueId,
+      starterIds,
+      week,
+      isDemoData
+    );
+    if (error) pageErrors.push({ leagueName: league.name, message: error });
 
-      for (const team of league.teams) {
-        const total = team.roster
-          .filter((p) => p.lineupSlot !== "Bench" && p.lineupSlot !== "IR")
-          .reduce((sum, p) => sum + (points.get(p.playerId)?.projected ?? 0), 0);
-        weeklyTotals.set(`${league.leagueId}:${team.id}`, Math.round(total * 10) / 10);
-      }
+    for (const team of league.teams) {
+      const total = team.roster
+        .filter((p) => p.lineupSlot !== "Bench" && p.lineupSlot !== "IR")
+        .reduce((sum, p) => sum + (points.get(p.playerId)?.projected ?? 0), 0);
+      weeklyTotals.set(team.id, Math.round(total * 10) / 10);
     }
   }
 
-  const cumulativeResults = await Promise.all(
-    leagues.map(async (league) => {
-      const { data, error } = await getCumulativePoints(league, isDemoData);
-      return { league, data, error };
-    })
+  const { data: cumulative, error: cumulativeError } = await getCumulativePoints(
+    league,
+    isDemoData
   );
-  const cumulativeErrors = cumulativeResults
-    .filter((c) => c.error)
-    .map((c) => ({ leagueName: c.league.name, message: c.error as string }));
-  const cumulative = cumulativeResults.map((c) => ({
-    leagueId: c.league.leagueId,
-    leagueName: c.league.name,
-    data: c.data,
-  }));
+  if (cumulativeError) pageErrors.push({ leagueName: league.name, message: cumulativeError });
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       {isDemoData && <DemoBanner />}
-      <ErrorBanner errors={[...errors, ...weeklyErrors, ...cumulativeErrors]} />
+      <ErrorBanner errors={pageErrors} />
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Standings</h2>
         <WeekSelector week={week} totalWeeks={totalWeeks} includeSeasonOption />
       </div>
       <StandingsView
-        leagues={leagues}
+        league={league}
         week={week}
         weeklyTotals={weeklyTotals}
         cumulative={cumulative}

@@ -35,17 +35,14 @@ export interface WeeklyRecap {
   seasonYear: number;
   headline: {
     topScoreTeam: string;
-    topScoreLeague: "EAST" | "WEST";
     topScore: number;
     biggestBeatTeam: string;
-    biggestBeatLeague: "EAST" | "WEST";
     biggestBeat: number;
     biggestBustTeam: string;
-    biggestBustLeague: "EAST" | "WEST";
     biggestBust: number;
   };
-  east: { teams: RecapTeamRow[]; notes: string[] };
-  west: { teams: RecapTeamRow[]; notes: string[] };
+  teams: RecapTeamRow[];
+  notes: string[];
   standouts: RecapCard[];
   freeAgents: RecapFreeAgent[];
   facts: string[];

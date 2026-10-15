@@ -6,7 +6,6 @@ import { COMPARE_COLORS, type CompareTeamColor } from "@/lib/compareColors";
 export interface CompareTeamOption {
   key: string; // `${leagueId}::${teamId}`
   label: string;
-  leagueName: string;
 }
 
 function TeamSelect({
@@ -24,13 +23,6 @@ function TeamSelect({
   color: CompareTeamColor;
   slotLabel: string;
 }) {
-  const byLeague = new Map<string, CompareTeamOption[]>();
-  for (const opt of options) {
-    const list = byLeague.get(opt.leagueName);
-    if (list) list.push(opt);
-    else byLeague.set(opt.leagueName, [opt]);
-  }
-
   return (
     <label className="flex flex-1 flex-col gap-1 text-sm">
       <span className={`flex items-center gap-1.5 font-medium ${color.text}`}>
@@ -41,16 +33,12 @@ function TeamSelect({
         onChange={(e) => onChange(e.target.value)}
         className="rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
-        {[...byLeague.entries()].map(([leagueName, opts]) => (
-          <optgroup key={leagueName} label={leagueName}>
-            {opts.map((opt) => (
-              // Disabled (not hidden) so the other side's pick still shows
-              // as a taken option, rather than silently disappearing.
-              <option key={opt.key} value={opt.key} disabled={opt.key === otherValue}>
-                {opt.label}
-              </option>
-            ))}
-          </optgroup>
+        {options.map((opt) => (
+          // Disabled (not hidden) so the other side's pick still shows
+          // as a taken option, rather than silently disappearing.
+          <option key={opt.key} value={opt.key} disabled={opt.key === otherValue}>
+            {opt.label}
+          </option>
         ))}
       </select>
     </label>

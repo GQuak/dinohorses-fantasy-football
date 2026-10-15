@@ -71,14 +71,10 @@ export interface StarterRankInfo {
 }
 
 // One row of the Compare page's Power Rankings table: a team's overall
-// score (see getLeaguePowerScores) and its rank among every team across
-// both leagues, for one Season/Wk N mode.
+// score (see getLeaguePowerScores) for one Season/Wk N mode.
 export interface PowerRankingEntry {
   key: string; // `${leagueId}::${teamId}`, matches CompareTeamOption.key
   teamName: string;
-  leagueName: string; // full name, e.g. "Adswerve League - EAST"
-  leagueShort: string; // e.g. "EAST"
-  leagueRank: number; // 1 = best, within this team's own league only
   score: number; // 0-100, higher = stronger
 }
 
@@ -94,8 +90,8 @@ export interface CumulativePointsSeries {
   weeklyPoints: number[];
 }
 
-// Data for the Standings page's cumulative-points-by-week line chart, one
-// of these per league. `weeks` only covers completed weeks -- the
+// Data for the Standings page's cumulative-points-by-week line chart.
+// `weeks` only covers completed weeks -- the
 // in-progress current week's score isn't final yet, so it's left off
 // rather than shown as a partial/misleading data point.
 export interface CumulativePointsData {
@@ -121,23 +117,19 @@ export interface PoolPlayer {
   seasonPoints: number;
   projectedPoints: number;
   avgPoints: number; // season points / games actually played; 0 pre-season
-  percentOwned: number; // ESPN-wide ownership %, not specific to your leagues
+  percentOwned: number; // ESPN-wide ownership %, not specific to your league
 }
 
-// Where a player sits on one specific league's rosters. A player can be
-// rostered in one of your leagues and a free agent in the other, so this
-// is per-league rather than a single flag on the player.
-export interface LeagueRosterSpot {
-  leagueId: string;
-  leagueName: string;
+// Which team in the league has a player rostered, and in what slot.
+export interface RosterSpot {
   teamName: string;
   ownerNames: string[];
   lineupSlot: string;
 }
 
-// Flattened row used by the player-rankings view: every rostered player
-// across both leagues, plus the wider free-agent pool, in one list.
+// Flattened row used by the player-rankings view: every rostered player,
+// plus the wider free-agent pool, in one list.
 export interface RankedPlayer extends PoolPlayer {
-  isRostered: boolean; // rostered in at least one of your leagues
-  rosters: LeagueRosterSpot[]; // 0, 1 (usual), or 2 entries
+  isRostered: boolean;
+  rosterSpot: RosterSpot | null; // null for a free agent
 }

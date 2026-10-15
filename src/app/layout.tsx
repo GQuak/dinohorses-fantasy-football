@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_SITE_NAME || "Fantasy Football Dashboard",
-  description: "Dashboard for ESPN Fantasy Football leagues.",
+  description: "Dashboard for an ESPN Fantasy Football league.",
 };
 
 // Set on Vercel (and .env.local, if you want it locally too) once you have

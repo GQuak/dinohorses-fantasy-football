@@ -2,8 +2,8 @@ export default function DemoBanner() {
   return (
     <div className="mx-auto mb-4 max-w-6xl px-4 sm:px-6">
       <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-        Showing sample data — no ESPN league is configured yet. Add your league IDs
-        (and cookies, for private leagues) to <code>.env.local</code> to see real data.
+        Showing sample data — no ESPN league is configured yet. Add your league ID
+        (and cookies, for a private league) to <code>.env.local</code> to see real data.
         See the README for setup steps.
       </div>
     </div>

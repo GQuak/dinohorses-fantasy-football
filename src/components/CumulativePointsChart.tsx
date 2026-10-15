@@ -10,10 +10,7 @@ const PLOT_H = HEIGHT - PAD.top - PAD.bottom;
 
 type Mode = "cumulative" | "weekly";
 
-// One line's data, identified by a caller-chosen string id rather than a
-// raw ESPN team id -- team ids are only unique *within* a league, so a
-// combined/merged chart (two leagues' teams on one chart) needs a
-// composite id (e.g. `${leagueId}:${teamId}`) to tell them apart.
+// One line's data, identified by a string id (the team's id).
 export interface ChartSeries {
   id: string;
   teamName: string;
@@ -22,8 +19,7 @@ export interface ChartSeries {
 }
 
 // 12 visually distinct hues -- enough for a full 12-team league without
-// two teams landing on near-identical colors. Used as the default color
-// scheme when the caller doesn't supply its own `colorFor`.
+// two teams landing on near-identical colors.
 const PALETTE = [
   "#3b82f6",
   "#ef4444",
@@ -43,16 +39,10 @@ export default function CumulativePointsChart({
   title,
   weeks,
   series,
-  colorFor: colorForProp,
 }: {
   title: string;
   weeks: number[];
   series: ChartSeries[];
-  // Optional per-series color override, keyed by series id -- e.g. a
-  // combined chart assigning each league its own color gradient instead
-  // of the default one-hue-per-team palette. Falls back to PALETTE,
-  // cycled in season-total order, when omitted.
-  colorFor?: (id: string) => string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<Mode>("cumulative");
@@ -79,9 +69,8 @@ export default function CumulativePointsChart({
   const bySeasonTotal = [...series].sort(
     (a, b) => (b.points[b.points.length - 1] ?? 0) - (a.points[a.points.length - 1] ?? 0)
   );
-  const colorFor =
-    colorForProp ??
-    ((id: string) => PALETTE[bySeasonTotal.findIndex((s) => s.id === id) % PALETTE.length]);
+  const colorFor = (id: string) =>
+    PALETTE[bySeasonTotal.findIndex((s) => s.id === id) % PALETTE.length];
 
   const maxValue = Math.max(1, ...series.flatMap((s) => valuesFor(s))) * 1.08;
 

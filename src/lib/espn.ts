@@ -82,7 +82,7 @@ export async function fetchLeagueRaw(
  * Fetches the wider NFL player pool (rostered + free agents), sorted by
  * ESPN-wide ownership percentage, for one league/season. `leagueId` is
  * only used for auth context here — player stats/ownership aren't
- * league-specific, so either of your two leagues' IDs works.
+ * league-specific, so any league ID you have access to works.
  */
 export async function fetchPlayerPoolRaw(
   leagueId: string,
