@@ -5,6 +5,8 @@
 // the week closes. Add a new entry per week; getLatestRecap() always shows
 // the most recent one.
 
+import type { AwardId } from "./awards";
+
 export interface RecapTeamRow {
   team: string;
   actual: number;
@@ -20,6 +22,14 @@ export interface RecapCard {
   actual: number;
   projected: number;
   note: string;
+}
+
+// One award earned by one team this week -- see awards.ts for the
+// catalog and the curation rules (one entry per team per award per week).
+export interface RecapAward {
+  award: AwardId;
+  team: string;
+  note: string; // the specific moment, e.g. "Caleb Williams, 4 pass TDs"
 }
 
 export interface RecapFreeAgent {
@@ -46,6 +56,7 @@ export interface WeeklyRecap {
   standouts: RecapCard[];
   freeAgents: RecapFreeAgent[];
   facts: string[];
+  awards: RecapAward[];
 }
 
 export const WEEKLY_RECAPS: WeeklyRecap[] = [
@@ -152,6 +163,17 @@ export const WEEKLY_RECAPS: WeeklyRecap[] = [
       },
     ],
     freeAgents: [],
+    awards: [
+      { award: "apex-predator", team: "Morning Oatmeal", note: "177.0 points, the week's top score" },
+      { award: "jurassic-park", team: "Baking Out", note: "161.3 points" },
+      { award: "jurassic-park", team: "Morning Oatmeal", note: "177.0 points" },
+      { award: "jurassic-park", team: "Potato Tomato", note: "156.1 points" },
+      { award: "extinction-event", team: "Morning Oatmeal", note: "Beat Murph Windango by 72.8" },
+      { award: "extinction-event", team: "Potato Tomato", note: "Beat Porteea McLean by 67.0" },
+      { award: "fossilized", team: "Porteea McLean", note: "89.1 points, the week's lowest score" },
+      { award: "wrong-fossil", team: "Baking Out", note: "Christian Watson scored 32.7 on the bench" },
+      { award: "t-rex-arm", team: "Joe Buck Yourself", note: "Trevor Lawrence, 4 pass TDs" },
+    ],
     facts: [
       "Baking Out left 72.4 points on its bench — Christian Watson 32.7, Kyle Monangai 20.4 and Parker Washington 19.3 — and still finished second.",
       "Three teams cleared 155 points; the other seven were all under 135.",
@@ -261,6 +283,17 @@ export const WEEKLY_RECAPS: WeeklyRecap[] = [
       },
     ],
     freeAgents: [],
+    awards: [
+      { award: "apex-predator", team: "Show Me Your TDs", note: "141.0 points, the week's top score" },
+      { award: "fossilized", team: "Porteea McLean", note: "75.1 points, the week's lowest score" },
+      { award: "perfect-lineup", team: "Baking Out", note: "108.1 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Lando Wins", note: "110.9 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Morning Oatmeal", note: "116.1 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Murph Windango", note: "125.4 points, the most possible from the roster" },
+      { award: "t-rex-arm", team: "Lando Wins", note: "Dak Prescott, 4 pass TDs" },
+      { award: "raptor-speed", team: "Joe Buck Yourself", note: "Jaxon Smith-Njigba scored 42.5" },
+      { award: "raptor-speed", team: "Show Me Your TDs", note: "Josh Allen scored 40.8" },
+    ],
     facts: [
       "Potato Tomato's Jaxson Dart and Malik Nabers combined for 1.9 points against a 33.1 projection.",
       "Porteea McLean's 75.1 was the week's low (-24.1 off projection), and Travis Kelce (25.1) and Stefon Diggs (21.7) scored 46.8 points on its bench.",
@@ -370,6 +403,19 @@ export const WEEKLY_RECAPS: WeeklyRecap[] = [
       },
     ],
     freeAgents: [],
+    awards: [
+      { award: "apex-predator", team: "Joe Buck Yourself", note: "146.1 points, the week's top score" },
+      { award: "extinction-event", team: "Murph Windango", note: "Beat Pihl Bunyan by 50.2" },
+      { award: "fossilized", team: "Pihl Bunyan", note: "89.2 points, the week's lowest score" },
+      { award: "meteor-strike", team: "Show Me Your TDs", note: "140.0 points, 2nd-best of the week, lost to Joe Buck Yourself" },
+      { award: "lucky-hooves", team: "Lando Wins", note: "Beat Porteea McLean with 111.4, a bottom-three score" },
+      { award: "perfect-lineup", team: "Hey Bob", note: "118.4 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Murph Windango", note: "139.4 points, the most possible from the roster" },
+      { award: "waiver-wizard", team: "Potato Tomato", note: "Brock Purdy scored 31.3" },
+      { award: "t-rex-arm", team: "Baking Out", note: "Tyler Shough, 4 pass TDs" },
+      { award: "t-rex-arm", team: "Potato Tomato", note: "Brock Purdy, 4 pass TDs" },
+      { award: "raptor-speed", team: "Morning Oatmeal", note: "Jahmyr Gibbs scored 41.4" },
+    ],
     facts: [
       "The top four teams finished within 7.7 points of each other (146.2 down to 138.5).",
       "Jaxon Smith-Njigba has been Joe Buck Yourself's engine: 42.5 in Week 2 and 35.4 in Week 3.",
@@ -480,6 +526,18 @@ export const WEEKLY_RECAPS: WeeklyRecap[] = [
       },
     ],
     freeAgents: [],
+    awards: [
+      { award: "apex-predator", team: "Joe Buck Yourself", note: "137.2 points, the week's top score" },
+      { award: "fossilized", team: "Murph Windango", note: "76.6 points, the week's lowest score" },
+      { award: "photo-finish", team: "Baking Out", note: "Lost to Potato Tomato by 1.2" },
+      { award: "wrong-fossil", team: "Joe Buck Yourself", note: "Nico Collins scored 30.8 on the bench" },
+      { award: "wrong-fossil", team: "Morning Oatmeal", note: "Tetairoa McMillan scored 45.2 on the bench" },
+      { award: "wrong-fossil", team: "Potato Tomato", note: "Javonte Williams scored 31.3 on the bench" },
+      { award: "lucky-hooves", team: "Lando Wins", note: "Beat Murph Windango with 94.0, a bottom-three score" },
+      { award: "escape-artist", team: "Potato Tomato", note: "Beat Baking Out by 1.2" },
+      { award: "comeback-kid", team: "Lando Wins", note: "Projected to lose to Murph Windango by 22.2, won by 17.4" },
+      { award: "raptor-speed", team: "Pihl Bunyan", note: "CeeDee Lamb scored 41.3" },
+    ],
     facts: [
       "Tetairoa McMillan's 45.2 — the week's top individual score — was on Morning Oatmeal's bench, as were Javonte Williams' 31.3 (Potato Tomato) and Nico Collins' 30.8 (Joe Buck Yourself).",
       "Porteea McLean jumped 36.1 points to 129.4 and finished 3rd, powered by Kyren Williams' 36.7 and kicker Jake Bates' 18.0 (projected 8.7).",
@@ -589,6 +647,23 @@ export const WEEKLY_RECAPS: WeeklyRecap[] = [
       },
     ],
     freeAgents: [],
+    awards: [
+      { award: "apex-predator", team: "Baking Out", note: "170.9 points, the week's top score" },
+      { award: "jurassic-park", team: "Baking Out", note: "170.9 points" },
+      { award: "jurassic-park", team: "Potato Tomato", note: "159.9 points" },
+      { award: "jurassic-park", team: "Show Me Your TDs", note: "151.0 points" },
+      { award: "extinction-event", team: "Potato Tomato", note: "Beat Pihl Bunyan by 95.8" },
+      { award: "fossilized", team: "Pihl Bunyan", note: "64.0 points, the week's lowest score" },
+      { award: "tar-pit", team: "Porteea McLean", note: "5th straight loss" },
+      { award: "wrong-fossil", team: "Potato Tomato", note: "Bucky Irving scored 31.5 on the bench" },
+      { award: "perfect-lineup", team: "Baking Out", note: "170.9 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Hey Bob", note: "149.4 points, the most possible from the roster" },
+      { award: "perfect-lineup", team: "Porteea McLean", note: "110.7 points, the most possible from the roster" },
+      { award: "waiver-wizard", team: "Baking Out", note: "Isaiah Likely scored 32.4; George Pickens scored 28.0" },
+      { award: "waiver-wizard", team: "Hey Bob", note: "Jared Goff scored 28.9" },
+      { award: "waiver-wizard", team: "Show Me Your TDs", note: "Jaylen Warren scored 36.8" },
+      { award: "herd-mentality", team: "Potato Tomato", note: "All 9 starters scored 10+" },
+    ],
     facts: [
       "Baking Out topped the league even with Tyler Shough at -0.2 (projected 16.5) at quarterback.",
       "CeeDee Lamb went from 41.3 for Pihl Bunyan in Week 4 to 2.9 in Week 5 — a 38.4-point swing.",
@@ -603,4 +678,25 @@ export function getLatestRecap(): WeeklyRecap | null {
 
 export function getRecapByWeek(week: number): WeeklyRecap | null {
   return WEEKLY_RECAPS.find((r) => r.week === week) ?? null;
+}
+
+// Every award earned so far, flattened across all published weeks, in
+// week order -- the Awards page groups and tallies these.
+export interface EarnedAward extends RecapAward {
+  week: number;
+}
+
+export function getAllEarnedAwards(): EarnedAward[] {
+  return WEEKLY_RECAPS.flatMap((r) => r.awards.map((a) => ({ ...a, week: r.week })));
+}
+
+// One team's awards, one entry per award (in first-earned order) with
+// every week it was earned -- repeats collapse into a single badge.
+export function getTeamAwards(teamName: string): { award: AwardId; weeks: number[] }[] {
+  const byAward = new Map<AwardId, number[]>();
+  for (const e of getAllEarnedAwards()) {
+    if (e.team !== teamName.trim()) continue;
+    byAward.set(e.award, [...(byAward.get(e.award) ?? []), e.week]);
+  }
+  return [...byAward.entries()].map(([award, weeks]) => ({ award, weeks }));
 }

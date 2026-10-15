@@ -11,6 +11,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import WeekSelector from "@/components/WeekSelector";
 import PositionCharts from "@/components/PositionCharts";
 import { ErrorBanner } from "@/components/DemoBanner";
+import AwardBadges from "@/components/AwardBadges";
 import type { RosterPlayer, WeeklyPoints } from "@/lib/types";
 
 function PlayerRow({ player, weekly }: { player: RosterPlayer; weekly: WeeklyPoints }) {
@@ -175,6 +176,9 @@ export default async function TeamDetailPage({
             {team.ownerNames.length > 0 ? team.ownerNames.join(", ") : "Unknown owner"} ·{" "}
             {league.name}
           </p>
+        </div>
+        <div className="flex-1 sm:px-4">
+          <AwardBadges teamName={team.name} />
         </div>
         <p className="whitespace-nowrap text-sm text-neutral-500">
           {team.wins}-{team.losses}

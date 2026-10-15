@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { RecapCard, RecapTeamRow, WeeklyRecap } from "@/lib/recapData";
+import type { RecapAward, RecapCard, RecapTeamRow, WeeklyRecap } from "@/lib/recapData";
+import { getAward } from "@/lib/awards";
 
 // Same fixed scale as the diff bars everywhere else in this app -- large
 // enough to cover a real blowout week without the bar ever fully maxing
@@ -130,6 +131,24 @@ function StandoutCard({ card }: { card: RecapCard }) {
   );
 }
 
+function AwardCard({ earned }: { earned: RecapAward }) {
+  const award = getAward(earned.award);
+  return (
+    <div className="flex gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
+      <span className="text-2xl leading-none" aria-hidden>
+        {award.emoji}
+      </span>
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          {award.name}
+        </div>
+        <div className="mt-0.5 font-semibold">{earned.team}</div>
+        <p className="mt-1 text-xs text-neutral-500">{earned.note}</p>
+      </div>
+    </div>
+  );
+}
+
 // Every published week gets its own permalink (/recap/[week]) rather than
 // all weeks fighting over one URL -- this is the pill row that moves
 // between them. Plain links, not a client-side toggle: each week is a
@@ -237,6 +256,22 @@ export default function WeeklyRecapView({
           ))}
         </div>
       </div>
+
+      {recap.awards.length > 0 && (
+        <div className="mb-6">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="font-semibold">Awards Earned</h3>
+            <Link href="/awards" className="text-xs font-medium text-neutral-500 hover:underline">
+              Season trophy case &rarr;
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {recap.awards.map((a) => (
+              <AwardCard key={`${a.award}-${a.team}`} earned={a} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-6 rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="px-4 pt-4 font-semibold">Odds &amp; Ends</h3>

@@ -5,6 +5,8 @@ A dashboard for a private ESPN Fantasy Football league:
 - **Teams** — every team, its owner(s), and full roster
 - **Standings** — win/loss/points-for/against, plus a cumulative/weekly points chart
 - **Compare** — overlay any two teams' position strength and starting lineups
+- **Awards** — a season trophy case of dino-themed awards, handed out with
+  each weekly recap
 - **Player Rankings** — every rostered player plus the wider free-agent pool,
   ranked by season fantasy points, filterable by position (including a **FLEX**
   filter that covers RB/WR/TE together)
@@ -89,3 +91,17 @@ in Vercel's dashboard and redeploy (or use "Redeploy" without a new commit).
 - Data is cached for 5 minutes (`next: { revalidate: 300 }` in
   [`src/lib/espn.ts`](src/lib/espn.ts)) to avoid hammering ESPN on every
   page load.
+
+## Weekly awards
+
+Awards are hand-curated in `src/lib/recapData.ts` alongside each week's
+recap; the catalog and curation rules live in `src/lib/awards.ts`. To draft
+a week's awards from ESPN data:
+
+```bash
+npm run awards -- 6
+```
+
+It prints an `awards: [...]` block. Review it, adjust the notes, and paste
+it into that week's recap entry. Season-long awards are added by hand in
+the final week.
