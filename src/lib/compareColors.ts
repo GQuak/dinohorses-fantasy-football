@@ -24,6 +24,38 @@ export const COMPARE_COLORS = {
   },
 } as const;
 
-// Shape of one team's color set (A or B) -- used by components that accept
+// Shape of one series' color set -- used by components that accept
 // "whichever team's colors" as a prop rather than hardcoding A or B.
-export type CompareTeamColor = (typeof COMPARE_COLORS)[keyof typeof COMPARE_COLORS];
+export interface CompareTeamColor {
+  hex: string;
+  bar: string;
+  dot: string;
+  text: string;
+  tooltipText: string;
+}
+
+// Trade Analyzer's before/after radar: grey for before, and green or red
+// for after depending on whether the team's lineup gains or loses points.
+export const TRADE_COLORS = {
+  before: {
+    hex: "#a3a3a3", // neutral-400
+    bar: "bg-neutral-400 dark:bg-neutral-500",
+    dot: "bg-neutral-400",
+    text: "text-neutral-500 dark:text-neutral-400",
+    tooltipText: "text-neutral-300 dark:text-neutral-600",
+  },
+  up: {
+    hex: "#10b981", // emerald-500
+    bar: "bg-emerald-500 dark:bg-emerald-600",
+    dot: "bg-emerald-500",
+    text: "text-emerald-700 dark:text-emerald-400",
+    tooltipText: "text-emerald-300 dark:text-emerald-700",
+  },
+  down: {
+    hex: "#f43f5e", // rose-500
+    bar: "bg-rose-500 dark:bg-rose-600",
+    dot: "bg-rose-500",
+    text: "text-rose-700 dark:text-rose-400",
+    tooltipText: "text-rose-300 dark:text-rose-700",
+  },
+} satisfies Record<string, CompareTeamColor>;

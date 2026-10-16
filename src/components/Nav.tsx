@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/recap", label: "Weekly Recap" },
   { href: "/teams", label: "Teams" },
   { href: "/compare", label: "Compare" },
+  { href: "/trade", label: "Trade" },
   { href: "/standings", label: "Standings" },
   { href: "/awards", label: "Awards" },
   { href: "/rankings", label: "Player Rankings" },

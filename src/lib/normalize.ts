@@ -141,6 +141,19 @@ export function normalizeLeague(
     };
   });
 
+  // ESPN keys these by lineup slot id, including every slot type it
+  // supports (most at 0) -- keep only the starter slots this league uses.
+  const lineupSlotCounts: Record<string, number> = {};
+  let rosterSize = 0;
+  for (const [slotId, count] of Object.entries<number>(
+    data.settings?.rosterSettings?.lineupSlotCounts ?? {}
+  )) {
+    const slot = lineupSlotName(Number(slotId));
+    if (!count || slot === "IR") continue;
+    rosterSize += count;
+    if (slot !== "Bench") lineupSlotCounts[slot] = count;
+  }
+
   return {
     leagueId,
     name: data.settings?.name || displayName,
@@ -149,6 +162,8 @@ export function normalizeLeague(
     // now" (they already apply the Wed-Tue boundary on their end).
     currentWeek: data.status?.currentMatchupPeriod ?? 1,
     totalWeeks: data.status?.finalScoringPeriod ?? 17,
+    lineupSlotCounts,
+    rosterSize,
     members,
     teams,
   };

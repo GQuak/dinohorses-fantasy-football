@@ -3,7 +3,7 @@
 import { useRef, useState, type MouseEvent } from "react";
 import ModeToggle from "./ModeToggle";
 import { rankFraction } from "@/lib/rank";
-import { COMPARE_COLORS } from "@/lib/compareColors";
+import { COMPARE_COLORS, type CompareTeamColor } from "@/lib/compareColors";
 import type { PositionAxisRank } from "@/lib/types";
 
 const SIZE = 320;
@@ -32,6 +32,8 @@ export default function CompareRadar({
   axesB,
   labelA,
   labelB,
+  colorA = COMPARE_COLORS.a,
+  colorB = COMPARE_COLORS.b,
   mode,
   onModeChange,
   currentWeek,
@@ -40,6 +42,8 @@ export default function CompareRadar({
   axesB: PositionAxisRank[];
   labelA: string;
   labelB: string;
+  colorA?: CompareTeamColor;
+  colorB?: CompareTeamColor;
   mode: "season" | "week";
   onModeChange: (mode: "season" | "week") => void;
   currentWeek: number;
@@ -110,16 +114,16 @@ export default function CompareRadar({
           {/* B drawn first so A's outline stays visible on top where the two overlap. */}
           <polygon
             points={polygonPoints(fractionsB, RADIUS)}
-            fill={COMPARE_COLORS.b.hex}
+            fill={colorB.hex}
             fillOpacity={0.28}
-            stroke={COMPARE_COLORS.b.hex}
+            stroke={colorB.hex}
             strokeWidth={2}
           />
           <polygon
             points={polygonPoints(fractionsA, RADIUS)}
-            fill={COMPARE_COLORS.a.hex}
+            fill={colorA.hex}
             fillOpacity={0.28}
-            stroke={COMPARE_COLORS.a.hex}
+            stroke={colorA.hex}
             strokeWidth={2}
           />
 
@@ -131,7 +135,7 @@ export default function CompareRadar({
                 cx={x}
                 cy={y}
                 r={5}
-                fill={COMPARE_COLORS.b.hex}
+                fill={colorB.hex}
                 stroke="white"
                 strokeWidth={1.5}
               />
@@ -145,7 +149,7 @@ export default function CompareRadar({
                 cx={x}
                 cy={y}
                 r={5}
-                fill={COMPARE_COLORS.a.hex}
+                fill={colorA.hex}
                 stroke="white"
                 strokeWidth={1.5}
               />
@@ -191,10 +195,10 @@ export default function CompareRadar({
             className="pointer-events-none absolute z-20 w-max max-w-[200px] -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-md bg-neutral-900 px-2 py-1.5 text-center text-xs font-semibold shadow-lg dark:bg-neutral-100"
             style={{ left: hover.x, top: hover.y }}
           >
-            <div className={COMPARE_COLORS.a.tooltipText}>
+            <div className={colorA.tooltipText}>
               {labelA}: {hoveredA.starterRank > 0 ? `#${hoveredA.starterRank}` : "—"}
             </div>
-            <div className={COMPARE_COLORS.b.tooltipText}>
+            <div className={colorB.tooltipText}>
               {labelB}: {hoveredB.starterRank > 0 ? `#${hoveredB.starterRank}` : "—"}
             </div>
           </div>
@@ -203,11 +207,11 @@ export default function CompareRadar({
 
       <div className="mt-1 flex items-center justify-center gap-4 text-xs text-neutral-500">
         <span className="flex items-center gap-1">
-          <span className={`h-2 w-2 rounded-full ${COMPARE_COLORS.a.dot}`} />
+          <span className={`h-2 w-2 rounded-full ${colorA.dot}`} />
           <span className="max-w-[100px] truncate">{labelA}</span>
         </span>
         <span className="flex items-center gap-1">
-          <span className={`h-2 w-2 rounded-full ${COMPARE_COLORS.b.dot}`} />
+          <span className={`h-2 w-2 rounded-full ${colorB.dot}`} />
           <span className="max-w-[100px] truncate">{labelB}</span>
         </span>
       </div>

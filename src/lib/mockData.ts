@@ -27,6 +27,8 @@ function roster(
   }));
 }
 
+const MOCK_LINEUP_SLOT_COUNTS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, "D/ST": 1, K: 1 };
+
 export const MOCK_LEAGUES: League[] = [
   {
     leagueId: "demo-1",
@@ -34,6 +36,8 @@ export const MOCK_LEAGUES: League[] = [
     seasonYear: 2026,
     currentWeek: 9,
     totalWeeks: 17,
+    lineupSlotCounts: MOCK_LINEUP_SLOT_COUNTS,
+    rosterSize: 16,
     members: [
       { id: "m1", displayName: "Alex Kim" },
       { id: "m2", displayName: "Jordan Reyes" },

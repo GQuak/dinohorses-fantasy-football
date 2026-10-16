@@ -39,6 +39,10 @@ export interface League {
   seasonYear: number;
   currentWeek: number; // ESPN's own "what week is it" (Wed-Tue boundary)
   totalWeeks: number; // last scoring period of the season, for a week picker's range
+  // Starting lineup shape, slot name -> how many start there (e.g. RB: 2,
+  // FLEX: 1). Starter slots only -- no Bench/IR.
+  lineupSlotCounts: Record<string, number>;
+  rosterSize: number; // max players per team, not counting IR
   members: Member[];
   teams: Team[];
 }
