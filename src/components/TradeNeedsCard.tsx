@@ -114,6 +114,15 @@ export default function TradeNeedsCard({
         </div>
       </div>
 
+      {needs.benchedStarters.length > 0 && (
+        <p className="mt-3 text-xs text-neutral-500">
+          Counted as starters here, though benched in this week&apos;s lineup:{" "}
+          {needs.benchedStarters.map((p) => `${p.name} (${p.position})`).join(", ")}. Charts
+          based on the current lineup, like Position Strength above, can rank{" "}
+          {needs.benchedStarters.length === 1 ? "that position" : "those positions"} lower.
+        </p>
+      )}
+
       <p className="mt-3 text-xs text-neutral-400">
         Based on each team&apos;s best possible lineup by ESPN&apos;s rest-of-season projections.
         Players who are out, on IR or suspended only count as starters when there&apos;s no

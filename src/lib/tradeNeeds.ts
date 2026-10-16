@@ -42,6 +42,10 @@ export interface TeamNeeds {
   teamName: string;
   needs: PositionNeed[];
   surplus: SurplusPlayer[];
+  // Starters in the best lineup who are on the bench in the lineup set
+  // right now (e.g. on bye), so their position can rank higher here than
+  // in charts based on the set lineup. Kickers and defenses left out.
+  benchedStarters: RosterPlayer[];
 }
 
 export interface SuggestedTrade {
@@ -130,7 +134,23 @@ export function getLeagueNeeds(league: League): Map<number, TeamNeeds> {
       .filter((s) => s.startsFor >= SURPLUS_MIN_TEAMS)
       .sort((a, b) => b.player.projectedPoints - a.player.projectedPoints);
 
-    result.set(team.id, { teamId: team.id, teamName: team.name, needs, surplus });
+    const setLineup = new Map(
+      league.teams.find((t) => t.id === team.id)!.roster.map((p) => [p.playerId, p.lineupSlot])
+    );
+    const benchedStarters = team.roster.filter(
+      (p) =>
+        isStarter(p) &&
+        TRADEABLE_POSITIONS.has(p.position) &&
+        setLineup.get(p.playerId) === "Bench"
+    );
+
+    result.set(team.id, {
+      teamId: team.id,
+      teamName: team.name,
+      needs,
+      surplus,
+      benchedStarters,
+    });
   }
   return result;
 }
