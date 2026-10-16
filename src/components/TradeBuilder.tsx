@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { COMPARE_COLORS, type CompareTeamColor } from "@/lib/compareColors";
 import { starterSlotSortIndex } from "@/lib/constants";
+import type { ProjectionSource } from "@/lib/projections";
 import type { RosterPlayer } from "@/lib/types";
 
 export interface TradeBuilderTeam {
@@ -14,7 +15,10 @@ export interface TradeBuilderTeam {
 // The whole trade lives in the URL (?a=&b=&ga=&gb=), so a proposed trade
 // can be shared as a link. Every change is a real navigation and the
 // server recomputes the analysis.
-function useTradeUrl(state: { a: number; b: number; ga: number[]; gb: number[] }) {
+function useTradeUrl(
+  state: { a: number; b: number; ga: number[]; gb: number[] },
+  src: ProjectionSource
+) {
   const router = useRouter();
   const pathname = usePathname();
   return (next: Partial<typeof state>) => {
@@ -24,6 +28,7 @@ function useTradeUrl(state: { a: number; b: number; ga: number[]; gb: number[] }
     params.set("b", String(merged.b));
     if (merged.ga.length) params.set("ga", merged.ga.join(","));
     if (merged.gb.length) params.set("gb", merged.gb.join(","));
+    if (src !== "espn") params.set("src", src);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 }
@@ -114,14 +119,16 @@ export default function TradeBuilder({
   b,
   ga,
   gb,
+  src,
 }: {
   teams: TradeBuilderTeam[];
   a: number;
   b: number;
   ga: number[];
   gb: number[];
+  src: ProjectionSource;
 }) {
-  const go = useTradeUrl({ a, b, ga, gb });
+  const go = useTradeUrl({ a, b, ga, gb }, src);
   const teamA = teams.find((t) => t.id === a)!;
   const teamB = teams.find((t) => t.id === b)!;
   const toggle = (list: number[], id: number) =>

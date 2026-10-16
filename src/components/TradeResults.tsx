@@ -4,6 +4,7 @@ import { useState } from "react";
 import CompareRadar from "./CompareRadar";
 import ModeToggle from "./ModeToggle";
 import { COMPARE_COLORS, TRADE_COLORS, type CompareTeamColor } from "@/lib/compareColors";
+import type { SourceProjections } from "@/lib/projections";
 import type { TradeMode, TradeResult, TradeTeamResult } from "@/lib/trade";
 import type { RosterPlayer } from "@/lib/types";
 
@@ -32,14 +33,19 @@ function weeklyLineupDelta(team: TradeTeamResult, mode: TradeMode, weeksRemainin
 function Verdict({
   result,
   mode,
+  sourceLabel,
 }: {
   result: TradeResult;
   mode: TradeMode;
+  sourceLabel: string;
 }) {
   const [a, b] = result.teams;
   const da = weeklyLineupDelta(a, mode, result.weeksRemaining);
   const db = weeklyLineupDelta(b, mode, result.weeksRemaining);
-  const unit = mode === "season" ? "pts/week for the rest of the season" : "pts this week";
+  const unit =
+    mode === "season"
+      ? `pts/week for the rest of the season (${sourceLabel} projections)`
+      : "pts this week (ESPN projections)";
 
   let headline: string;
   if (Math.abs(da - db) < EVEN_THRESHOLD) headline = "Pretty even trade";
@@ -58,25 +64,62 @@ function Verdict({
   );
 }
 
-function PlayerRow({ p, tag }: { p: RosterPlayer; tag?: string }) {
+// Every source's take on one player, e.g. "ESPN 314.2 · Sleeper 301.5 ·
+// CBS 308.2", so a consensus or single-source number can be sanity-checked.
+function SourceBreakdown({ values }: { values?: SourceProjections }) {
+  if (!values) return null;
+  const parts: [string, number | undefined][] = [
+    ["ESPN", values.espn],
+    ["Sleeper", values.sleeper],
+    ["CBS", values.cbs],
+  ];
   return (
-    <li className="flex items-baseline justify-between gap-2 py-1 text-sm">
-      <span className="min-w-0 truncate">
-        {p.name}{" "}
-        <span className="text-xs text-neutral-400">
-          {p.position} · {p.proTeam}
-          {p.injuryStatus && <span className="ml-1 text-rose-500">{p.injuryStatus}</span>}
-          {tag && <span className="ml-1">· {tag}</span>}
+    <div className="text-[11px] tabular-nums text-neutral-400">
+      {parts.map(([label, v]) => `${label} ${v === undefined ? "—" : v.toFixed(1)}`).join(" · ")}
+    </div>
+  );
+}
+
+function PlayerRow({
+  p,
+  tag,
+  breakdown,
+}: {
+  p: RosterPlayer;
+  tag?: string;
+  breakdown: Record<number, SourceProjections>;
+}) {
+  return (
+    <li className="py-1 text-sm">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate">
+          {p.name}{" "}
+          <span className="text-xs text-neutral-400">
+            {p.position} · {p.proTeam}
+            {p.injuryStatus && <span className="ml-1 text-rose-500">{p.injuryStatus}</span>}
+            {tag && <span className="ml-1">· {tag}</span>}
+          </span>
         </span>
-      </span>
-      <span className="flex-shrink-0 text-xs tabular-nums text-neutral-500">
-        {p.projectedPoints.toFixed(1)} ROS · {p.avgPoints.toFixed(1)}/gm
-      </span>
+        <span className="flex-shrink-0 text-xs tabular-nums text-neutral-500">
+          {p.projectedPoints.toFixed(1)} ROS · {p.avgPoints.toFixed(1)}/gm
+        </span>
+      </div>
+      <SourceBreakdown values={breakdown[p.playerId]} />
     </li>
   );
 }
 
-function PlayerList({ title, players, tag }: { title: string; players: RosterPlayer[]; tag?: string }) {
+function PlayerList({
+  title,
+  players,
+  tag,
+  breakdown,
+}: {
+  title: string;
+  players: RosterPlayer[];
+  tag?: string;
+  breakdown: Record<number, SourceProjections>;
+}) {
   if (players.length === 0) return null;
   const total = players.reduce((s, p) => s + p.projectedPoints, 0);
   return (
@@ -87,7 +130,7 @@ function PlayerList({ title, players, tag }: { title: string; players: RosterPla
       </div>
       <ul>
         {players.map((p) => (
-          <PlayerRow key={p.playerId} p={p} tag={tag} />
+          <PlayerRow key={p.playerId} p={p} tag={tag} breakdown={breakdown} />
         ))}
       </ul>
     </div>
@@ -126,11 +169,13 @@ function TeamCard({
   color,
   mode,
   weeksRemaining,
+  breakdown,
 }: {
   team: TradeTeamResult;
   color: CompareTeamColor;
   mode: TradeMode;
   weeksRemaining: number;
+  breakdown: Record<number, SourceProjections>;
 }) {
   const m = team.modes[mode];
   const lineupLabel = mode === "season" ? "Lineup, rest of season" : "Lineup, this week";
@@ -144,10 +189,15 @@ function TeamCard({
         <span className={`h-2.5 w-2.5 rounded-full ${color.dot}`} /> {team.teamName}
       </h3>
 
-      <PlayerList title="Gets" players={team.received} />
-      <PlayerList title="Gives" players={team.sent} />
-      <PlayerList title="Drops to make room" players={team.dropped} />
-      <PlayerList title="Picks up (best free agent)" players={team.pickedUp} tag="FA" />
+      <PlayerList title="Gets" players={team.received} breakdown={breakdown} />
+      <PlayerList title="Gives" players={team.sent} breakdown={breakdown} />
+      <PlayerList title="Drops to make room" players={team.dropped} breakdown={breakdown} />
+      <PlayerList
+        title="Picks up (best free agent)"
+        players={team.pickedUp}
+        tag="FA"
+        breakdown={breakdown}
+      />
 
       <table className="mt-4 w-full text-sm">
         <thead className="text-[10px] uppercase tracking-wide text-neutral-400">
@@ -226,9 +276,13 @@ function TeamCard({
 export default function TradeResults({
   result,
   currentWeek,
+  sourceLabel,
+  breakdown,
 }: {
   result: TradeResult;
   currentWeek: number;
+  sourceLabel: string;
+  breakdown: Record<number, SourceProjections>;
 }) {
   const [mode, setMode] = useState<TradeMode>("season");
   const [a, b] = result.teams;
@@ -240,11 +294,23 @@ export default function TradeResults({
         <ModeToggle mode={mode} onChange={setMode} currentWeek={currentWeek} />
       </div>
 
-      <Verdict result={result} mode={mode} />
+      <Verdict result={result} mode={mode} sourceLabel={sourceLabel} />
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <TeamCard team={a} color={COMPARE_COLORS.a} mode={mode} weeksRemaining={result.weeksRemaining} />
-        <TeamCard team={b} color={COMPARE_COLORS.b} mode={mode} weeksRemaining={result.weeksRemaining} />
+        <TeamCard
+          team={a}
+          color={COMPARE_COLORS.a}
+          mode={mode}
+          weeksRemaining={result.weeksRemaining}
+          breakdown={breakdown}
+        />
+        <TeamCard
+          team={b}
+          color={COMPARE_COLORS.b}
+          mode={mode}
+          weeksRemaining={result.weeksRemaining}
+          breakdown={breakdown}
+        />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
