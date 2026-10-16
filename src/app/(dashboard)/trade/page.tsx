@@ -4,6 +4,8 @@ import DemoBanner, { ErrorBanner } from "@/components/DemoBanner";
 import TradeBuilder from "@/components/TradeBuilder";
 import TradeResults from "@/components/TradeResults";
 import ProjectionSourceSwitch from "@/components/ProjectionSourceSwitch";
+import TradePartners from "@/components/TradePartners";
+import { findTradePartners } from "@/lib/tradeNeeds";
 import {
   getSourceProjections,
   parseProjectionSource,
@@ -175,6 +177,14 @@ export default async function TradePage({
           sourceLabel={sourceLabel}
           breakdown={Object.fromEntries(bySource)}
         />
+      ) : ga.length === 0 && gb.length === 0 ? (
+        <TradePartners
+          teamId={teamA.id}
+          teamName={teamA.name}
+          suggestions={findTradePartners(projectedLeague, teamA.id)}
+          source={source}
+          sourceLabel={sourceLabel}
+        />
       ) : (
         <p className="mb-6 rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
           Select at least one player from each team to see the analysis.
@@ -187,7 +197,8 @@ export default async function TradePage({
         this league, but their kicker and defense scoring differs from ESPN&apos;s; Consensus
         averages whichever sources project each player. The Wk {league.currentWeek} view always
         uses ESPN&apos;s weekly projections. Before and after both use each team&apos;s best possible
-        lineup by projection, not the lineup currently set. Power score and position ranks are the
+        lineup by projection, not the lineup currently set; players who are out, on IR or
+        suspended only start there when there&apos;s no healthy backup. Power score and position ranks are the
         same ones the Compare page uses. Expert rankings and playoff schedules aren&apos;t included
         yet.
       </p>

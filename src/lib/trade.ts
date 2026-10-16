@@ -64,12 +64,23 @@ function valueFnFor(mode: TradeMode, weekly: Map<number, WeeklyPoints>): ValueFn
     : (p) => weekly.get(p.playerId)?.projected ?? 0;
 }
 
+// Players ruled out (out, on IR, suspended) only start in a best lineup
+// when no healthy player can fill the slot. Questionable and doubtful
+// players still count until they're ruled out.
+export const UNAVAILABLE_STATUSES = new Set(["O", "IR", "SUSP"]);
+
+export function isUnavailable(p: RosterPlayer): boolean {
+  return UNAVAILABLE_STATUSES.has(p.injuryStatus);
+}
+
 /**
  * Returns the roster with every non-IR player re-slotted into the best
  * possible lineup for `value`: each fixed slot (QB, RB, WR, ...) takes
- * the highest-valued players at that position, then FLEX takes the best
- * remaining RB/WR/TE. Everyone else goes to the bench. Filling the fixed
- * slots first and FLEX last is optimal for this kind of lineup.
+ * the highest-valued available players at that position, then FLEX takes
+ * the best remaining RB/WR/TE. Everyone else goes to the bench. Filling
+ * the fixed slots first and FLEX last is optimal for this kind of
+ * lineup. Unavailable players (see UNAVAILABLE_STATUSES) are only used
+ * when nobody else is eligible for the slot.
  */
 export function optimizeLineup(
   roster: RosterPlayer[],
@@ -79,7 +90,7 @@ export function optimizeLineup(
   const slotById = new Map<number, string>();
   const byValue = [...roster]
     .filter((p) => p.lineupSlot !== "IR")
-    .sort((a, b) => value(b) - value(a));
+    .sort((a, b) => Number(isUnavailable(a)) - Number(isUnavailable(b)) || value(b) - value(a));
 
   for (const [slot, count] of Object.entries(slotCounts)) {
     if (slot === "FLEX") continue;

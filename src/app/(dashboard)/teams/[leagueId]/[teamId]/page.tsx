@@ -12,6 +12,8 @@ import WeekSelector from "@/components/WeekSelector";
 import PositionCharts from "@/components/PositionCharts";
 import { ErrorBanner } from "@/components/DemoBanner";
 import AwardBadges from "@/components/AwardBadges";
+import TradeNeedsCard from "@/components/TradeNeedsCard";
+import { getBestFits, getLeagueNeeds } from "@/lib/tradeNeeds";
 import type { RosterPlayer, WeeklyPoints } from "@/lib/types";
 
 function PlayerRow({ player, weekly }: { player: RosterPlayer; weekly: WeeklyPoints }) {
@@ -160,6 +162,8 @@ export default async function TeamDetailPage({
       starters.reduce((sum, p) => sum + (weeklyPoints.get(p.playerId)?.points ?? 0), 0) * 10
     ) / 10;
 
+  const leagueNeeds = getLeagueNeeds(league);
+
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6">
       <Link
@@ -197,6 +201,8 @@ export default async function TeamDetailPage({
         weekLineup={weekLineup}
         currentWeek={league.currentWeek}
       />
+
+      <TradeNeedsCard needs={leagueNeeds.get(team.id)!} fits={getBestFits(leagueNeeds, team.id)} />
 
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm text-neutral-500">
