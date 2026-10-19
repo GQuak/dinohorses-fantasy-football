@@ -1,6 +1,8 @@
 import {
   fetchLeagueRaw,
   fetchMatchupScoresRaw,
+  fetchProScheduleRaw,
+  fetchWeekMatchupsRaw,
   fetchPlayerPoolRaw,
   fetchWeeklyStatsRaw,
   EspnApiError,
@@ -8,6 +10,8 @@ import {
 import {
   normalizeLeague,
   normalizePoolPlayer,
+  normalizeProGames,
+  normalizeWeekMatchups,
   normalizeTeamWeeklyScores,
   normalizeWeeklyPoints,
 } from "./normalize";
@@ -23,6 +27,7 @@ import type {
   CumulativePointsData,
   DashboardData,
   League,
+  Matchup,
   RosterSpot,
   PoolPlayer,
   PositionAxisRank,
@@ -517,4 +522,38 @@ export function getStartingLineupRanks(
     });
   }
   return result;
+}
+
+/**
+ * Loads one week's head-to-head matchups: each side's starters with
+ * points so far (live during the week) and pre-game projections, plus
+ * each NFL game's kickoff so the page can tell who's played. Not
+ * available for demo data.
+ */
+export async function getWeekMatchups(
+  league: League,
+  week: number,
+  isDemoData: boolean
+): Promise<{ matchups: Matchup[]; error: string | null }> {
+  const cfg = getLeagueConfigs().find((c) => c.id === league.leagueId);
+  if (isDemoData || !cfg) return { matchups: [], error: null };
+
+  const year = seasonYear();
+  const creds = { espnS2: cfg.espnS2, swid: cfg.swid };
+  try {
+    const [raw, scheduleRaw] = await Promise.all([
+      fetchWeekMatchupsRaw(cfg.id, year, creds, week),
+      fetchProScheduleRaw(year, creds),
+    ]);
+    const proGames = normalizeProGames(scheduleRaw, week);
+    return {
+      matchups: normalizeWeekMatchups(raw, proGames, week, year, league.teams, Date.now()),
+      error: null,
+    };
+  } catch (err) {
+    const message =
+      err instanceof EspnApiError ? err.message : "Unexpected error fetching this week's matchups.";
+    console.error(`[espn] failed to load week ${week} matchups (league ${league.leagueId}):`, err);
+    return { matchups: [], error: message };
+  }
 }

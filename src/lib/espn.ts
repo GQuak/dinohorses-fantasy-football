@@ -28,7 +28,8 @@ async function espnRequest(
   // exceed Next.js's 2MB fetch-cache-entry limit; caching it just fails
   // silently (with a console warning) rather than actually caching, so
   // callers with a large response opt out of the data cache entirely.
-  cacheable = true
+  cacheable = true,
+  revalidateSeconds = 300
 ): Promise<unknown> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -40,7 +41,7 @@ async function espnRequest(
 
   const res = await fetch(url, {
     headers,
-    ...(cacheable ? { next: { revalidate: 300 } } : { cache: "no-store" as const }),
+    ...(cacheable ? { next: { revalidate: revalidateSeconds } } : { cache: "no-store" as const }),
   });
 
   if (!res.ok) {
@@ -160,4 +161,39 @@ export async function fetchWeeklyStatsRaw(
     false
   );
   return (raw as { players?: unknown[] })?.players ?? [];
+}
+
+/**
+ * Fetches one week's head-to-head matchups with each team's starters and
+ * their points so far -- live during the week, final afterwards. Cached
+ * for just a minute so scores stay current during games. The week is in
+ * the URL (scoringPeriodId), so each week gets its own cache entry even
+ * though the filter header also varies.
+ */
+export async function fetchWeekMatchupsRaw(
+  leagueId: string,
+  seasonYear: number,
+  creds: EspnCredentials,
+  week: number
+): Promise<unknown> {
+  const url =
+    `${BASE}/${seasonYear}/segments/0/leagues/${leagueId}` +
+    `?view=mBoxscore&view=mMatchupScore&scoringPeriodId=${week}`;
+  const filter = { schedule: { filterMatchupPeriodIds: { value: [week] } } };
+  return espnRequest(url, creds, { "X-Fantasy-Filter": JSON.stringify(filter) }, true, 60);
+}
+
+/**
+ * Fetches the NFL schedule for the season: every pro team's game (kickoff
+ * time, whether stats are official) in each scoring period. Not
+ * league-specific. Changes rarely, so it's cached for a day.
+ */
+export async function fetchProScheduleRaw(
+  seasonYear: number,
+  creds: EspnCredentials
+): Promise<unknown> {
+  const url =
+    `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonYear}` +
+    `?view=proTeamSchedules_wl`;
+  return espnRequest(url, creds, {}, true, 86400);
 }

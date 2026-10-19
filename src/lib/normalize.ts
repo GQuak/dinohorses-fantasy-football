@@ -1,5 +1,21 @@
-import { FLEX_POSITIONS, lineupSlotName, positionName, proTeamAbbrev } from "./constants";
-import type { League, Member, PoolPlayer, RosterPlayer, Team, WeeklyPoints } from "./types";
+import {
+  FLEX_POSITIONS,
+  lineupSlotName,
+  positionName,
+  proTeamAbbrev,
+  starterSlotSortIndex,
+} from "./constants";
+import type {
+  League,
+  Matchup,
+  MatchupPlayer,
+  MatchupSide,
+  Member,
+  PoolPlayer,
+  RosterPlayer,
+  Team,
+  WeeklyPoints,
+} from "./types";
 
 // The raw ESPN payload is a large, loosely-documented blob. We only read
 // the handful of fields the UI needs and stay defensive about anything
@@ -236,4 +252,83 @@ export function normalizeWeeklyPoints(
       projected: round1(findWeekStatEntry(player, year, week, 1)?.appliedTotal),
     },
   };
+}
+
+// Normalizes the NFL schedule (proTeamSchedules_wl) into proTeamId ->
+// that week's game: kickoff time and whether its stats are official.
+// A team with no game that week (bye) is left out.
+export function normalizeProGames(
+  raw: unknown,
+  week: number
+): Map<number, { kickoff: number; official: boolean }> {
+  const proTeams: any[] = (raw as any)?.settings?.proTeams ?? [];
+  const games = new Map<number, { kickoff: number; official: boolean }>();
+  for (const team of proTeams) {
+    const game = team?.proGamesByScoringPeriod?.[String(week)]?.[0];
+    if (game?.date) games.set(team.id, { kickoff: game.date, official: !!game.statsOfficial });
+  }
+  return games;
+}
+
+// Normalizes one week's mBoxscore matchups into head-to-head pairs with
+// each side's starters. `teams` supplies names and records (current
+// records -- ESPN's boxscore doesn't carry a team's record as of that
+// week). `now` decides which games have kicked off.
+export function normalizeWeekMatchups(
+  raw: unknown,
+  proGames: Map<number, { kickoff: number; official: boolean }>,
+  week: number,
+  year: number,
+  teams: Team[],
+  now: number
+): Matchup[] {
+  const schedule: any[] = (raw as any)?.schedule ?? [];
+  const teamById = new Map(teams.map((t) => [t.id, t]));
+
+  function side(s: any): MatchupSide {
+    const team = teamById.get(s.teamId);
+    const starters: MatchupPlayer[] = (s.rosterForCurrentScoringPeriod?.entries ?? [])
+      .map((entry: any): MatchupPlayer | null => {
+        const lineupSlot = lineupSlotName(entry.lineupSlotId);
+        if (lineupSlot === "Bench" || lineupSlot === "IR") return null;
+        const player = entry.playerPoolEntry?.player ?? {};
+        const game = proGames.get(player.proTeamId);
+        const gameState: MatchupPlayer["gameState"] = !game
+          ? "bye"
+          : game.kickoff > now
+            ? "upcoming"
+            : game.official
+              ? "final"
+              : "live";
+        return {
+          playerId: entry.playerId ?? player.id,
+          name: player.fullName ?? "Unknown Player",
+          position: positionName(player.defaultPositionId),
+          lineupSlot,
+          proTeam: proTeamAbbrev(player.proTeamId),
+          kickoff: game?.kickoff ?? null,
+          gameState,
+          points: round1(findWeekStatEntry(player, year, week, 0)?.appliedTotal),
+          projected: round1(findWeekStatEntry(player, year, week, 1)?.appliedTotal),
+        };
+      })
+      .filter((p: MatchupPlayer | null): p is MatchupPlayer => p !== null)
+      .sort(
+        (a: MatchupPlayer, b: MatchupPlayer) =>
+          starterSlotSortIndex(a.lineupSlot) - starterSlotSortIndex(b.lineupSlot)
+      );
+    return {
+      teamId: s.teamId,
+      teamName: team?.name.trim() ?? `Team ${s.teamId}`,
+      record: team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ""}` : "",
+      points: round1(s.totalPointsLive ?? s.totalPoints),
+      projectedTotal: round1(s.totalProjectedPointsLive ?? s.totalPointsLive ?? s.totalPoints),
+      winProbability: typeof s.winProbability === "number" ? s.winProbability : null,
+      starters,
+    };
+  }
+
+  return schedule
+    .filter((m) => m?.matchupPeriodId === week && m.home && m.away)
+    .map((m) => ({ home: side(m.home), away: side(m.away) }));
 }

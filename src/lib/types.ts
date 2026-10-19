@@ -137,3 +137,33 @@ export interface RankedPlayer extends PoolPlayer {
   isRostered: boolean;
   rosterSpot: RosterSpot | null; // null for a free agent
 }
+
+// One starter in a head-to-head matchup for a given week.
+export interface MatchupPlayer {
+  playerId: number;
+  name: string;
+  position: string;
+  lineupSlot: string;
+  proTeam: string;
+  kickoff: number | null; // ms since epoch; null = bye week
+  // upcoming: before kickoff; live: kicked off, stats not official yet;
+  // final: stats official; bye: no game this week.
+  gameState: "upcoming" | "live" | "final" | "bye";
+  points: number; // actual so far (0 before kickoff)
+  projected: number; // ESPN's pre-game projection for the week
+}
+
+export interface MatchupSide {
+  teamId: number;
+  teamName: string;
+  record: string; // e.g. "3-2"
+  points: number; // live total
+  projectedTotal: number; // live projected final (actual so far + remaining projections)
+  winProbability: number | null; // 0-1, null if ESPN didn't provide one
+  starters: MatchupPlayer[];
+}
+
+export interface Matchup {
+  home: MatchupSide;
+  away: MatchupSide;
+}
