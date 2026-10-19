@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { Matchup, MatchupPlayer, MatchupSide } from "@/lib/types";
 
@@ -8,16 +8,24 @@ import type { Matchup, MatchupPlayer, MatchupSide } from "@/lib/types";
 // cached for a minute on the server, so refreshing faster wouldn't help.
 const REFRESH_MS = 60_000;
 
+const noSubscribe = () => () => {};
+
 // Kickoff in the viewer's own time zone. The server renders in UTC, so
-// the first paint can differ from the browser's -- suppressHydrationWarning
-// lets the browser's local version win without a hydration error.
+// it renders nothing (the server snapshot) and the browser fills in its
+// local time right after hydration. suppressHydrationWarning alone isn't
+// enough: React keeps the server's text, which showed UTC times.
 function Kickoff({ ts }: { ts: number }) {
-  const text = new Intl.DateTimeFormat(undefined, {
-    weekday: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(ts);
-  return <span suppressHydrationWarning>{text}</span>;
+  const text = useSyncExternalStore(
+    noSubscribe,
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        weekday: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(ts),
+    () => ""
+  );
+  return <span>{text}</span>;
 }
 
 function PlayerCell({ p, align }: { p?: MatchupPlayer; align: "left" | "right" }) {
