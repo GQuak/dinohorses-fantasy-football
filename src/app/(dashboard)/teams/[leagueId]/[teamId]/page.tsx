@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import PositionCharts from "@/components/PositionCharts";
 import { ErrorBanner } from "@/components/DemoBanner";
 import AwardBadges from "@/components/AwardBadges";
 import TradeNeedsCard from "@/components/TradeNeedsCard";
+import TeamFreeAgents, { TeamFreeAgentsLoading } from "@/components/TeamFreeAgents";
 import { getBestFits, getLeagueNeeds } from "@/lib/tradeNeeds";
 import type { RosterPlayer, WeeklyPoints } from "@/lib/types";
 
@@ -203,6 +205,16 @@ export default async function TeamDetailPage({
       />
 
       <TradeNeedsCard needs={leagueNeeds.get(team.id)!} fits={getBestFits(leagueNeeds, team.id)} />
+
+      <Suspense fallback={<TeamFreeAgentsLoading />}>
+        <TeamFreeAgents
+          leagues={leagues}
+          league={league}
+          teamId={team.id}
+          needs={leagueNeeds.get(team.id)}
+          isDemoData={isDemoData}
+        />
+      </Suspense>
 
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm text-neutral-500">

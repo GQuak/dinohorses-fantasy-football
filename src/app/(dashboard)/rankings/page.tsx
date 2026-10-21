@@ -1,10 +1,14 @@
 import { getDashboardData, getPlayerPool } from "@/lib/data";
 import DemoBanner, { ErrorBanner } from "@/components/DemoBanner";
 import RankingsView from "@/components/RankingsView";
+import { freeAgentCandidates, getLeagueFreeAgentFits } from "@/lib/freeAgents";
 
 export default async function RankingsPage() {
   const { leagues, isDemoData, errors } = await getDashboardData();
   const { players, error: poolError } = await getPlayerPool(leagues, isDemoData);
+
+  const league = leagues[0] ?? null;
+  const topFreeAgents = league ? getLeagueFreeAgentFits(league, freeAgentCandidates(players)) : [];
 
   const allErrors = poolError
     ? [...errors, { leagueName: "Player pool", message: poolError }]
@@ -19,7 +23,7 @@ export default async function RankingsPage() {
         Every rostered player in the league, plus the wider NFL free-agent pool. Use FLEX to
         see RB/WR/TE together.
       </p>
-      <RankingsView players={players} />
+      <RankingsView players={players} topFreeAgents={topFreeAgents} />
     </div>
   );
 }

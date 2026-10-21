@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { LeagueFreeAgentFit } from "@/lib/freeAgents";
 import type { RankedPlayer } from "@/lib/types";
 
 const POSITION_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "FLEX", "K", "D/ST"] as const;
@@ -57,7 +58,72 @@ function FilterGroup<T extends string>({
   );
 }
 
-export default function RankingsView({ players }: { players: RankedPlayer[] }) {
+// Shown above the table when the Free Agent filter is on: the free agents
+// who'd improve the most teams' best lineups.
+function TopFreeAgents({ fits }: { fits: LeagueFreeAgentFit[] }) {
+  return (
+    <div className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <h3 className="font-semibold">Top Free Agents</h3>
+      <p className="mb-3 text-sm text-neutral-500">
+        The free agents who&apos;d improve the most teams&apos; best lineups.
+      </p>
+      {fits.length === 0 ? (
+        <p className="text-sm text-neutral-400">No free agent would improve any lineup right now.</p>
+      ) : (
+        <ol className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          {fits.map((f, i) => (
+            <li
+              key={f.player.playerId}
+              className="flex flex-col gap-1 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <span className="mr-2 text-xs text-neutral-400">{i + 1}</span>
+                <span className="font-medium">{f.player.name}</span>{" "}
+                <span className="text-xs text-neutral-400">
+                  {f.player.position} · {f.player.proTeam}
+                  {f.player.injuryStatus && (
+                    <span className="ml-1 text-rose-500">{f.player.injuryStatus}</span>
+                  )}{" "}
+                  · {f.player.projectedPoints.toFixed(1)} ROS
+                </span>
+              </div>
+              <div className="flex-shrink-0 text-xs text-neutral-500 sm:text-right">
+                <div>
+                  Would improve{" "}
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    {f.teamsHelped} of {f.totalTeams}
+                  </span>{" "}
+                  lineups
+                </div>
+                {f.bestTeam && (
+                  <div>
+                    Most for {f.bestTeam.teamName}{" "}
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      +{f.bestTeam.gainPerWeek.toFixed(1)} pts/wk
+                    </span>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="mt-3 text-xs text-neutral-400">
+        Based on each team&apos;s best possible lineup by ESPN&apos;s rest-of-season projections,
+        after dropping whoever that lineup misses least. Free agents who are out, on IR or
+        suspended aren&apos;t included.
+      </p>
+    </div>
+  );
+}
+
+export default function RankingsView({
+  players,
+  topFreeAgents,
+}: {
+  players: RankedPlayer[];
+  topFreeAgents: LeagueFreeAgentFit[];
+}) {
   const [position, setPosition] = useState<PositionFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [query, setQuery] = useState("");
@@ -97,6 +163,7 @@ export default function RankingsView({ players }: { players: RankedPlayer[] }) {
           labels={STATUS_LABELS}
         />
       </div>
+      {status === "FREE_AGENT" && <TopFreeAgents fits={topFreeAgents} />}
       <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full min-w-[840px] text-sm">
           <thead className="bg-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">

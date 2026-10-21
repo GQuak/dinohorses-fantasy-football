@@ -73,7 +73,7 @@ function optimized(league: League): League {
   };
 }
 
-function lineupTotal(roster: RosterPlayer[], league: League): number {
+export function lineupTotal(roster: RosterPlayer[], league: League): number {
   return optimizeLineup(roster, league.lineupSlotCounts, projection)
     .filter(isStarter)
     .reduce((sum, p) => sum + p.projectedPoints, 0);
@@ -90,7 +90,7 @@ function weakestStarterFor(team: Team, player: RosterPlayer): number {
 }
 
 // Does `need` (an axis) get filled by a player at `position`?
-function fills(need: string, position: string): boolean {
+export function fills(need: string, position: string): boolean {
   return need === position || (need === "FLEX" && FLEX_POSITIONS.includes(position));
 }
 

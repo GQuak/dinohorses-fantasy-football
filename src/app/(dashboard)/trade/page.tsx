@@ -6,6 +6,7 @@ import TradeResults from "@/components/TradeResults";
 import ProjectionSourceSwitch from "@/components/ProjectionSourceSwitch";
 import TradePartners from "@/components/TradePartners";
 import { findTradePartners } from "@/lib/tradeNeeds";
+import { freeAgentCandidates } from "@/lib/freeAgents";
 import {
   getSourceProjections,
   parseProjectionSource,
@@ -66,22 +67,7 @@ export default async function TradePage({
   if (ga.length > 0 && gb.length > 0 && ga.length !== gb.length) {
     const { players, error } = await getPlayerPool(leagues, isDemoData);
     if (error) pageErrors.push({ leagueName: "Free agents", message: error });
-    freeAgents = players
-      .filter((p) => !p.isRostered && p.injuryStatus !== "IR" && p.injuryStatus !== "O")
-      .sort((x, y) => y.projectedPoints - x.projectedPoints)
-      .slice(0, FREE_AGENT_CANDIDATES)
-      .map((p) => ({
-        playerId: p.playerId,
-        name: p.name,
-        position: p.position,
-        isFlexEligible: p.isFlexEligible,
-        proTeam: p.proTeam,
-        lineupSlot: "Bench",
-        injuryStatus: p.injuryStatus,
-        seasonPoints: p.seasonPoints,
-        projectedPoints: p.projectedPoints,
-        avgPoints: p.avgPoints,
-      }));
+    freeAgents = freeAgentCandidates(players).slice(0, FREE_AGENT_CANDIDATES);
   }
 
   // Every source's rest-of-season number for every player on the page,
