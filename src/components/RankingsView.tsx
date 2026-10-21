@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { LeagueFreeAgentFit } from "@/lib/freeAgents";
+import type { FreeAgentGroup, LeagueFreeAgentFit } from "@/lib/freeAgents";
 import type { RankedPlayer } from "@/lib/types";
 
 const POSITION_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "FLEX", "K", "D/ST"] as const;
@@ -58,60 +58,92 @@ function FilterGroup<T extends string>({
   );
 }
 
+// One section's ranked free agents.
+function FreeAgentList({
+  fits,
+  minWeeklyGain,
+}: {
+  fits: LeagueFreeAgentFit[];
+  minWeeklyGain: number;
+}) {
+  if (fits.length === 0) {
+    return (
+      <p className="py-2 text-sm text-neutral-400">
+        {minWeeklyGain >= 1
+          ? `No free agent would add ${minWeeklyGain} pt/wk or more to any lineup.`
+          : "No free agent would improve any lineup right now."}
+      </p>
+    );
+  }
+  return (
+    <ol className="divide-y divide-neutral-100 dark:divide-neutral-800">
+      {fits.map((f, i) => (
+        <li
+          key={f.player.playerId}
+          className="flex flex-col gap-1 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <span className="mr-2 text-xs text-neutral-400">{i + 1}</span>
+            <span className="font-medium">{f.player.name}</span>{" "}
+            <span className="text-xs text-neutral-400">
+              {f.player.position} · {f.player.proTeam}
+              {f.player.injuryStatus && (
+                <span className="ml-1 text-rose-500">{f.player.injuryStatus}</span>
+              )}{" "}
+              · {f.player.projectedPoints.toFixed(1)} ROS
+            </span>
+          </div>
+          <div className="flex-shrink-0 text-xs text-neutral-500 sm:text-right">
+            <div>
+              Would improve{" "}
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                {f.teamsHelped} of {f.totalTeams}
+              </span>{" "}
+              lineups
+            </div>
+            {f.bestTeam && (
+              <div>
+                Most for {f.bestTeam.teamName}{" "}
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  +{f.bestTeam.gainPerWeek.toFixed(1)} pts/wk
+                </span>
+              </div>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 // Shown above the table when the Free Agent filter is on: the free agents
-// who'd improve the most teams' best lineups.
-function TopFreeAgents({ fits }: { fits: LeagueFreeAgentFit[] }) {
+// who'd improve the most teams' best lineups, FLEX positions first, then
+// the one-slot positions (QB, K, D/ST), which only count bigger gains.
+function TopFreeAgents({ groups }: { groups: FreeAgentGroup[] }) {
   return (
     <div className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="font-semibold">Top Free Agents</h3>
-      <p className="mb-3 text-sm text-neutral-500">
+      <p className="mb-2 text-sm text-neutral-500">
         The free agents who&apos;d improve the most teams&apos; best lineups.
       </p>
-      {fits.length === 0 ? (
-        <p className="text-sm text-neutral-400">No free agent would improve any lineup right now.</p>
-      ) : (
-        <ol className="divide-y divide-neutral-100 dark:divide-neutral-800">
-          {fits.map((f, i) => (
-            <li
-              key={f.player.playerId}
-              className="flex flex-col gap-1 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <span className="mr-2 text-xs text-neutral-400">{i + 1}</span>
-                <span className="font-medium">{f.player.name}</span>{" "}
-                <span className="text-xs text-neutral-400">
-                  {f.player.position} · {f.player.proTeam}
-                  {f.player.injuryStatus && (
-                    <span className="ml-1 text-rose-500">{f.player.injuryStatus}</span>
-                  )}{" "}
-                  · {f.player.projectedPoints.toFixed(1)} ROS
-                </span>
-              </div>
-              <div className="flex-shrink-0 text-xs text-neutral-500 sm:text-right">
-                <div>
-                  Would improve{" "}
-                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">
-                    {f.teamsHelped} of {f.totalTeams}
-                  </span>{" "}
-                  lineups
-                </div>
-                {f.bestTeam && (
-                  <div>
-                    Most for {f.bestTeam.teamName}{" "}
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      +{f.bestTeam.gainPerWeek.toFixed(1)} pts/wk
-                    </span>
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      {groups.map((g) => (
+        <section key={g.id} className="mt-3">
+          <div className="flex items-baseline justify-between border-b border-neutral-100 pb-1 dark:border-neutral-800">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-neutral-500">{g.label}</h4>
+            {g.minWeeklyGain >= 1 && (
+              <span className="text-[11px] text-neutral-400">
+                Counts gains of {g.minWeeklyGain}+ pt/wk
+              </span>
+            )}
+          </div>
+          <FreeAgentList fits={g.fits} minWeeklyGain={g.minWeeklyGain} />
+        </section>
+      ))}
       <p className="mt-3 text-xs text-neutral-400">
         Based on each team&apos;s best possible lineup by ESPN&apos;s rest-of-season projections,
-        after dropping whoever that lineup misses least. Free agents who are out, on IR or
-        suspended aren&apos;t included.
+        after dropping whoever that lineup misses least. Teams rarely swap a QB, kicker or defense
+        for a small upgrade, so those sections only count gains of 1+ pt/wk. Free agents who are
+        out, on IR or suspended aren&apos;t included.
       </p>
     </div>
   );
@@ -119,10 +151,10 @@ function TopFreeAgents({ fits }: { fits: LeagueFreeAgentFit[] }) {
 
 export default function RankingsView({
   players,
-  topFreeAgents,
+  freeAgentGroups,
 }: {
   players: RankedPlayer[];
-  topFreeAgents: LeagueFreeAgentFit[];
+  freeAgentGroups: FreeAgentGroup[];
 }) {
   const [position, setPosition] = useState<PositionFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -163,7 +195,7 @@ export default function RankingsView({
           labels={STATUS_LABELS}
         />
       </div>
-      {status === "FREE_AGENT" && <TopFreeAgents fits={topFreeAgents} />}
+      {status === "FREE_AGENT" && <TopFreeAgents groups={freeAgentGroups} />}
       <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full min-w-[840px] text-sm">
           <thead className="bg-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">

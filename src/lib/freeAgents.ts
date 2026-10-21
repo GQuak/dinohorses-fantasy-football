@@ -12,6 +12,29 @@ import type { League, RankedPlayer, RosterPlayer } from "./types";
 const CANDIDATE_POOL = 60;
 // Gains smaller than this (pts/week) aren't worth a roster move.
 const MIN_WEEKLY_GAIN = 0.1;
+// Teams rarely swap a QB, kicker or defense for a small upgrade, so the
+// league-wide list only counts bigger gains at those positions.
+const MIN_WEEKLY_GAIN_ONE_SLOT = 1.0;
+
+// The Player Rankings page's free-agent sections, in display order.
+export const FREE_AGENT_GROUPS: {
+  id: string;
+  label: string;
+  positions: string[];
+  limit: number;
+  minWeeklyGain: number;
+}[] = [
+  {
+    id: "flex",
+    label: "FLEX (RB/WR/TE)",
+    positions: ["RB", "WR", "TE"],
+    limit: 6,
+    minWeeklyGain: MIN_WEEKLY_GAIN,
+  },
+  { id: "qb", label: "QB", positions: ["QB"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
+  { id: "k", label: "Kickers", positions: ["K"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
+  { id: "dst", label: "Defenses", positions: ["D/ST"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
+];
 
 export interface TeamFreeAgentFit {
   player: RosterPlayer;
@@ -29,11 +52,12 @@ export interface LeagueFreeAgentFit {
 
 /**
  * The best free agents in the player pool as roster players, skipping
- * anyone ruled out (out, on IR, suspended).
+ * anyone ruled out (out, on IR, suspended). `positions` limits the pool
+ * before the cut, so kickers and defenses aren't crowded out by RBs/WRs.
  */
-export function freeAgentCandidates(players: RankedPlayer[]): RosterPlayer[] {
+export function freeAgentCandidates(players: RankedPlayer[], positions?: string[]): RosterPlayer[] {
   return players
-    .filter((p) => !p.isRostered)
+    .filter((p) => !p.isRostered && (!positions || positions.includes(p.position)))
     .map(
       (p): RosterPlayer => ({
         playerId: p.playerId,
@@ -125,7 +149,8 @@ export function getTeamFreeAgentFits(
 export function getLeagueFreeAgentFits(
   league: League,
   candidates: RosterPlayer[],
-  limit = 10
+  limit = 10,
+  minWeeklyGain = MIN_WEEKLY_GAIN
 ): LeagueFreeAgentFit[] {
   const weeks = weeksLeft(league);
   const befores = new Map(league.teams.map((t) => [t.id, lineupTotal(t.roster, league)]));
@@ -137,7 +162,7 @@ export function getLeagueFreeAgentFits(
       for (const team of league.teams) {
         const { gain } = pickupGain(team.roster, player, league, befores.get(team.id)!);
         const perWeek = Math.round((gain / weeks) * 10) / 10;
-        if (perWeek < MIN_WEEKLY_GAIN) continue;
+        if (perWeek < minWeeklyGain) continue;
         teamsHelped++;
         if (!bestTeam || perWeek > bestTeam.gainPerWeek) {
           bestTeam = { teamId: team.id, teamName: team.name.trim(), gainPerWeek: perWeek };
@@ -152,4 +177,29 @@ export function getLeagueFreeAgentFits(
         (b.bestTeam?.gainPerWeek ?? 0) - (a.bestTeam?.gainPerWeek ?? 0)
     )
     .slice(0, limit);
+}
+
+export interface FreeAgentGroup {
+  id: string;
+  label: string;
+  minWeeklyGain: number;
+  fits: LeagueFreeAgentFit[];
+}
+
+/** League-wide free-agent fits, one section per FREE_AGENT_GROUPS entry. */
+export function getGroupedLeagueFreeAgentFits(
+  league: League,
+  players: RankedPlayer[]
+): FreeAgentGroup[] {
+  return FREE_AGENT_GROUPS.map((g) => ({
+    id: g.id,
+    label: g.label,
+    minWeeklyGain: g.minWeeklyGain,
+    fits: getLeagueFreeAgentFits(
+      league,
+      freeAgentCandidates(players, g.positions),
+      g.limit,
+      g.minWeeklyGain
+    ),
+  }));
 }
