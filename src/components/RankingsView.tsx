@@ -117,16 +117,29 @@ function FreeAgentList({
 }
 
 // Shown above the table when the Free Agent filter is on: the free agents
-// who'd improve the most teams' best lineups, FLEX positions first, then
-// the one-slot positions (QB, K, D/ST), which only count bigger gains.
-function TopFreeAgents({ groups }: { groups: FreeAgentGroup[] }) {
+// who'd improve the most teams' best lineups. With no position picked:
+// FLEX first, then the one-slot positions (QB, K, D/ST), which only count
+// bigger gains. With a position picked: just that position's list.
+function TopFreeAgents({
+  groups,
+  position,
+}: {
+  groups: FreeAgentGroup[];
+  position: PositionFilter;
+}) {
+  const visible =
+    position === "ALL"
+      ? groups
+          .filter((g) => g.allViewLimit > 0)
+          .map((g) => ({ ...g, fits: g.fits.slice(0, g.allViewLimit) }))
+      : groups.filter((g) => g.filter === position);
   return (
     <div className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="font-semibold">Top Free Agents</h3>
       <p className="mb-2 text-sm text-neutral-500">
         The free agents who&apos;d improve the most teams&apos; best lineups.
       </p>
-      {groups.map((g) => (
+      {visible.map((g) => (
         <section key={g.id} className="mt-3">
           <div className="flex items-baseline justify-between border-b border-neutral-100 pb-1 dark:border-neutral-800">
             <h4 className="text-xs font-bold uppercase tracking-wide text-neutral-500">{g.label}</h4>
@@ -195,7 +208,7 @@ export default function RankingsView({
           labels={STATUS_LABELS}
         />
       </div>
-      {status === "FREE_AGENT" && <TopFreeAgents groups={freeAgentGroups} />}
+      {status === "FREE_AGENT" && <TopFreeAgents groups={freeAgentGroups} position={position} />}
       <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full min-w-[840px] text-sm">
           <thead className="bg-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">

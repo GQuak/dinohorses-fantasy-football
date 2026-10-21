@@ -17,24 +17,77 @@ const MIN_WEEKLY_GAIN = 0.1;
 const MIN_WEEKLY_GAIN_ONE_SLOT = 1.0;
 
 // The Player Rankings page's free-agent sections, in display order.
+// `filter` is the rankings position filter that shows just that section;
+// `allViewLimit` is how many it shows when no position is picked (0 =
+// left out of the All view -- RB/WR/TE are covered there by FLEX).
 export const FREE_AGENT_GROUPS: {
   id: string;
   label: string;
+  filter: string;
   positions: string[];
-  limit: number;
+  allViewLimit: number;
   minWeeklyGain: number;
 }[] = [
   {
     id: "flex",
     label: "FLEX (RB/WR/TE)",
+    filter: "FLEX",
     positions: ["RB", "WR", "TE"],
-    limit: 6,
+    allViewLimit: 6,
     minWeeklyGain: MIN_WEEKLY_GAIN,
   },
-  { id: "qb", label: "QB", positions: ["QB"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
-  { id: "k", label: "Kickers", positions: ["K"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
-  { id: "dst", label: "Defenses", positions: ["D/ST"], limit: 3, minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT },
+  {
+    id: "qb",
+    label: "QB",
+    filter: "QB",
+    positions: ["QB"],
+    allViewLimit: 3,
+    minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT,
+  },
+  {
+    id: "k",
+    label: "Kickers",
+    filter: "K",
+    positions: ["K"],
+    allViewLimit: 3,
+    minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT,
+  },
+  {
+    id: "dst",
+    label: "Defenses",
+    filter: "D/ST",
+    positions: ["D/ST"],
+    allViewLimit: 3,
+    minWeeklyGain: MIN_WEEKLY_GAIN_ONE_SLOT,
+  },
+  {
+    id: "rb",
+    label: "RB",
+    filter: "RB",
+    positions: ["RB"],
+    allViewLimit: 0,
+    minWeeklyGain: MIN_WEEKLY_GAIN,
+  },
+  {
+    id: "wr",
+    label: "WR",
+    filter: "WR",
+    positions: ["WR"],
+    allViewLimit: 0,
+    minWeeklyGain: MIN_WEEKLY_GAIN,
+  },
+  {
+    id: "te",
+    label: "TE",
+    filter: "TE",
+    positions: ["TE"],
+    allViewLimit: 0,
+    minWeeklyGain: MIN_WEEKLY_GAIN,
+  },
 ];
+
+// How many players a section shows when its own position is picked.
+const SINGLE_POSITION_LIMIT = 8;
 
 export interface TeamFreeAgentFit {
   player: RosterPlayer;
@@ -182,8 +235,10 @@ export function getLeagueFreeAgentFits(
 export interface FreeAgentGroup {
   id: string;
   label: string;
+  filter: string;
+  allViewLimit: number;
   minWeeklyGain: number;
-  fits: LeagueFreeAgentFit[];
+  fits: LeagueFreeAgentFit[]; // up to SINGLE_POSITION_LIMIT, best first
 }
 
 /** League-wide free-agent fits, one section per FREE_AGENT_GROUPS entry. */
@@ -194,11 +249,13 @@ export function getGroupedLeagueFreeAgentFits(
   return FREE_AGENT_GROUPS.map((g) => ({
     id: g.id,
     label: g.label,
+    filter: g.filter,
+    allViewLimit: g.allViewLimit,
     minWeeklyGain: g.minWeeklyGain,
     fits: getLeagueFreeAgentFits(
       league,
       freeAgentCandidates(players, g.positions),
-      g.limit,
+      SINGLE_POSITION_LIMIT,
       g.minWeeklyGain
     ),
   }));
