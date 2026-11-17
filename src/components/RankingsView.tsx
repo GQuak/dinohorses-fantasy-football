@@ -16,6 +16,68 @@ const STATUS_LABELS: Record<StatusFilter, string> = {
   FREE_AGENT: "Free Agent",
 };
 
+// Sortable table columns (every column except % Own). Numbers sort high
+// to low first; text sorts A to Z first.
+type SortKey = "name" | "position" | "proTeam" | "team" | "projected" | "avg" | "points";
+type SortDir = "asc" | "desc";
+const TEXT_SORT_KEYS: SortKey[] = ["name", "position", "proTeam", "team"];
+
+function sortField(p: RankedPlayer, key: SortKey): string | number {
+  switch (key) {
+    case "name":
+      return p.name;
+    case "position":
+      return p.position;
+    case "proTeam":
+      return p.proTeam;
+    case "team":
+      // Free agents sort after every rostered team.
+      return p.rosterSpot?.teamName ?? "\uffff";
+    case "projected":
+      return p.projectedPoints;
+    case "avg":
+      return p.avgPoints;
+    case "points":
+      return p.seasonPoints;
+  }
+}
+
+// Default order: season points, then projection, then ownership.
+function defaultOrder(a: RankedPlayer, b: RankedPlayer): number {
+  if (b.seasonPoints !== a.seasonPoints) return b.seasonPoints - a.seasonPoints;
+  if (b.projectedPoints !== a.projectedPoints) return b.projectedPoints - a.projectedPoints;
+  return b.percentOwned - a.percentOwned;
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: { key: SortKey; dir: SortDir };
+  onSort: (key: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <th className={`px-3 py-2 ${align === "right" ? "text-right" : ""}`}>
+      <button
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-0.5 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 ${
+          active ? "text-neutral-900 dark:text-neutral-100" : ""
+        }`}
+      >
+        {label}
+        <span className="w-3 text-[10px]">{active ? (sort.dir === "desc" ? "▼" : "▲") : ""}</span>
+      </button>
+    </th>
+  );
+}
+
 function matchesPosition(player: RankedPlayer, filter: PositionFilter): boolean {
   if (filter === "ALL") return true;
   if (filter === "FLEX") return player.isFlexEligible;
@@ -172,6 +234,15 @@ export default function RankingsView({
   const [position, setPosition] = useState<PositionFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "points", dir: "desc" });
+
+  function handleSort(key: SortKey) {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "desc" ? "asc" : "desc" }
+        : { key, dir: TEXT_SORT_KEYS.includes(key) ? "asc" : "desc" }
+    );
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -180,11 +251,16 @@ export default function RankingsView({
       .filter((p) => matchesStatus(p, status))
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true))
       .sort((a, b) => {
-        if (b.seasonPoints !== a.seasonPoints) return b.seasonPoints - a.seasonPoints;
-        if (b.projectedPoints !== a.projectedPoints) return b.projectedPoints - a.projectedPoints;
-        return b.percentOwned - a.percentOwned;
+        const x = sortField(a, sort.key);
+        const y = sortField(b, sort.key);
+        const cmp =
+          typeof x === "number" && typeof y === "number"
+            ? x - y
+            : String(x).localeCompare(String(y));
+        // Ties fall back to the default order.
+        return (sort.dir === "asc" ? cmp : -cmp) || defaultOrder(a, b);
       });
-  }, [players, position, status, query]);
+  }, [players, position, status, query, sort]);
 
   const columnCount = 9;
 
@@ -214,14 +290,14 @@ export default function RankingsView({
           <thead className="bg-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
             <tr>
               <th className="px-3 py-2">#</th>
-              <th className="px-3 py-2">Player</th>
-              <th className="px-3 py-2">Pos</th>
-              <th className="px-3 py-2">Pro Team</th>
-              <th className="px-3 py-2">Team</th>
+              <SortHeader label="Player" sortKey="name" sort={sort} onSort={handleSort} />
+              <SortHeader label="Pos" sortKey="position" sort={sort} onSort={handleSort} />
+              <SortHeader label="Pro Team" sortKey="proTeam" sort={sort} onSort={handleSort} />
+              <SortHeader label="Team" sortKey="team" sort={sort} onSort={handleSort} />
               <th className="px-3 py-2 text-right">% Own</th>
-              <th className="px-3 py-2 text-right">Proj</th>
-              <th className="px-3 py-2 text-right">Avg/Gm</th>
-              <th className="px-3 py-2 text-right">Pts</th>
+              <SortHeader label="Proj" sortKey="projected" sort={sort} onSort={handleSort} align="right" />
+              <SortHeader label="Avg/Gm" sortKey="avg" sort={sort} onSort={handleSort} align="right" />
+              <SortHeader label="Pts" sortKey="points" sort={sort} onSort={handleSort} align="right" />
             </tr>
           </thead>
           <tbody>
