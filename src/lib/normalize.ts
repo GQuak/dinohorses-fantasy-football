@@ -213,6 +213,34 @@ export function normalizeTeamWeeklyScores(
   return result;
 }
 
+// Normalizes one finished week's box scores (fetchWeekMatchupsRaw) into
+// each team's final score and its starters' projected total for that
+// week -- the lineup it actually set then, not its current roster.
+export function normalizeWeekResults(
+  raw: unknown,
+  week: number,
+  year: number
+): { teamId: number; actual: number; projected: number }[] {
+  const schedule: any[] = (raw as any)?.schedule ?? [];
+  return schedule
+    .filter((m) => m?.matchupPeriodId === week && m.home && m.away)
+    .flatMap((m) => [m.home, m.away])
+    .map((s: any) => ({
+      teamId: s.teamId,
+      actual: s.totalPoints ?? 0,
+      projected: (s.rosterForCurrentScoringPeriod?.entries ?? [])
+        .filter((e: any) => {
+          const slot = lineupSlotName(e.lineupSlotId);
+          return slot !== "Bench" && slot !== "IR";
+        })
+        .reduce(
+          (sum: number, e: any) =>
+            sum + (findWeekStatEntry(e.playerPoolEntry?.player, year, week, 1)?.appliedTotal ?? 0),
+          0
+        ),
+    }));
+}
+
 // Normalizes one entry from ESPN's player-pool (kona_player_info) response
 // -- the wider NFL player universe, independent of any one league's roster.
 export function normalizePoolPlayer(entry: unknown, year: number): PoolPlayer {

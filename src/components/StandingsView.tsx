@@ -2,9 +2,18 @@
 
 import { useMemo, useState } from "react";
 import CumulativePointsChart, { type ChartSeries } from "./CumulativePointsChart";
-import type { CumulativePointsData, League, Team } from "@/lib/types";
+import type { CumulativePointsData, League, Team, TeamExpectations } from "@/lib/types";
 
-type SortKey = "wins" | "losses" | "pointsFor" | "pointsAgainst" | "weekly";
+type SortKey =
+  | "wins"
+  | "losses"
+  | "pointsFor"
+  | "pointsAgainst"
+  | "weekly"
+  | "leagueRecord"
+  | "expectedWins"
+  | "luck"
+  | "vsProjected";
 type SortDir = "asc" | "desc";
 
 // Default order: matches ESPN's usual sort (wins, then ties, then
@@ -32,13 +41,30 @@ function weeklyColumnValue(
   return weeklyTotals?.get(team.id) ?? 0;
 }
 
+// Win share of a team's league record (every team vs. every other team,
+// every week).
+function leagueWinPct(e: TeamExpectations): number {
+  const games = e.leagueWins + e.leagueLosses + e.leagueTies;
+  return games ? (e.leagueWins + e.leagueTies / 2) / games : 0;
+}
+
 function sortValue(
   team: Team,
   key: SortKey,
   week: number | "season",
-  weeklyTotals: Map<number, number> | null
+  weeklyTotals: Map<number, number> | null,
+  expectations: Map<number, TeamExpectations>
 ): number {
+  const e = expectations.get(team.id);
   switch (key) {
+    case "leagueRecord":
+      return e ? leagueWinPct(e) : 0;
+    case "expectedWins":
+      return e?.expectedWins ?? 0;
+    case "luck":
+      return e?.luck ?? 0;
+    case "vsProjected":
+      return e?.vsProjected ?? 0;
     case "wins":
       return team.wins;
     case "losses":
@@ -54,19 +80,22 @@ function sortValue(
 
 function SortableHeader({
   label,
+  title,
   sortKey,
   activeSort,
   onSort,
 }: {
   label: string;
+  title?: string;
   sortKey: SortKey;
   activeSort: { key: SortKey; dir: SortDir } | null;
   onSort: (key: SortKey) => void;
 }) {
   const active = activeSort?.key === sortKey;
   return (
-    <th className="px-3 py-2 text-right">
+    <th className="whitespace-nowrap px-3 py-2 text-right">
       <button
+        title={title}
         onClick={() => onSort(sortKey)}
         className={`inline-flex items-center gap-0.5 hover:text-neutral-900 dark:hover:text-neutral-100 ${
           active ? "text-neutral-900 dark:text-neutral-100" : ""
@@ -85,12 +114,14 @@ function StandingsTable({
   rows,
   week,
   weeklyTotals,
+  expectations,
   sort,
   onSort,
 }: {
   rows: Team[];
   week: number | "season";
   weeklyTotals: Map<number, number> | null;
+  expectations: Map<number, TeamExpectations>;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (key: SortKey) => void;
 }) {
@@ -102,13 +133,14 @@ function StandingsTable({
     return [...rows].sort(
       (a, b) =>
         factor *
-        (sortValue(a, sort.key, week, weeklyTotals) - sortValue(b, sort.key, week, weeklyTotals))
+        (sortValue(a, sort.key, week, weeklyTotals, expectations) -
+          sortValue(b, sort.key, week, weeklyTotals, expectations))
     );
-  }, [rows, sort, week, weeklyTotals]);
+  }, [rows, sort, week, weeklyTotals, expectations]);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-      <table className="w-full min-w-[560px] text-sm">
+      <table className="w-full min-w-[860px] text-sm">
         <thead className="bg-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
           <tr>
             <th className="px-3 py-2">#</th>
@@ -120,6 +152,34 @@ function StandingsTable({
             <SortableHeader label="PF" sortKey="pointsFor" activeSort={sort} onSort={onSort} />
             <SortableHeader label="PA" sortKey="pointsAgainst" activeSort={sort} onSort={onSort} />
             <SortableHeader label={weeklyLabel} sortKey="weekly" activeSort={sort} onSort={onSort} />
+            <SortableHeader
+              label="Lg Rec"
+              title="League record: every team vs. every other team, every week"
+              sortKey="leagueRecord"
+              activeSort={sort}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="Exp W"
+              title="Expected wins: the league record scaled to one game a week"
+              sortKey="expectedWins"
+              activeSort={sort}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="Luck"
+              title="Actual wins minus expected wins"
+              sortKey="luck"
+              activeSort={sort}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="vs Proj"
+              title="Points scored minus the starters' projections, all weeks"
+              sortKey="vsProjected"
+              activeSort={sort}
+              onSort={onSort}
+            />
           </tr>
         </thead>
         <tbody>
@@ -141,11 +201,57 @@ function StandingsTable({
               <td className="px-3 py-2 text-right tabular-nums text-neutral-500">
                 {weeklyColumnValue(team, week, weeklyTotals)}
               </td>
+              <ExpectationCells e={expectations.get(team.id)} />
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}`;
+const signedClass = (n: number) =>
+  n > 0
+    ? "text-emerald-600 dark:text-emerald-400"
+    : n < 0
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-neutral-500";
+
+function ExpectationCells({ e }: { e: TeamExpectations | undefined }) {
+  if (!e || e.weeks === 0) {
+    return (
+      <>
+        {[0, 1, 2, 3].map((i) => (
+          <td key={i} className="px-3 py-2 text-right text-neutral-400">
+            —
+          </td>
+        ))}
+      </>
+    );
+  }
+  return (
+    <>
+      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+        {e.leagueWins}-{e.leagueLosses}
+        {e.leagueTies ? `-${e.leagueTies}` : ""}
+      </td>
+      <td className="px-3 py-2 text-right tabular-nums text-neutral-500">
+        {e.expectedWins.toFixed(1)}
+      </td>
+      <td className={`px-3 py-2 text-right font-medium tabular-nums ${signedClass(e.luck)}`}>
+        {signed(e.luck)}
+      </td>
+      <td
+        className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${signedClass(e.vsProjected)}`}
+        title={`Beat projections in ${e.beatProjectedWeeks} of ${e.weeks} weeks`}
+      >
+        {signed(e.vsProjected)}
+        <span className="ml-1 text-[11px] text-neutral-400">
+          {e.beatProjectedWeeks}/{e.weeks}
+        </span>
+      </td>
+    </>
   );
 }
 
@@ -162,11 +268,13 @@ export default function StandingsView({
   league,
   week,
   weeklyTotals,
+  expectations,
   cumulative,
 }: {
   league: League;
   week: number | "season";
   weeklyTotals: Map<number, number> | null;
+  expectations: Map<number, TeamExpectations>;
   cumulative: CumulativePointsData;
 }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
@@ -199,9 +307,18 @@ export default function StandingsView({
           rows={rows}
           week={week}
           weeklyTotals={weeklyTotals}
+          expectations={expectations}
           sort={sort}
           onSort={handleSort}
         />
+        <p className="mt-2 text-xs text-neutral-500">
+          <span className="font-medium">Lg Rec</span> plays every team against every other team
+          each week, so it ignores who you happened to face. <span className="font-medium">Exp W</span>{" "}
+          is that record scaled to one game a week, and <span className="font-medium">Luck</span> is
+          actual wins minus expected wins. <span className="font-medium">vs Proj</span> is points
+          scored minus what the starting lineups were projected to score, with the weeks beating
+          projections alongside. All four cover completed weeks only.
+        </p>
         <div className="mt-4">
           <CumulativePointsChart
             title={`${league.name} — Points`}

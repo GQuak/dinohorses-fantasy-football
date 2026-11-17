@@ -184,6 +184,27 @@ export async function fetchWeekMatchupsRaw(
 }
 
 /**
+ * Fetches one finished week's box scores: final scores plus each starter's
+ * projection. Same data as fetchWeekMatchupsRaw, but under a different
+ * URL (the views are listed in the other order) so it never shares a
+ * cache entry with the Matchups page, whose copy may have been cached
+ * while that week was still being played. Cached for hours: finished
+ * weeks only change with stat corrections.
+ */
+export async function fetchFinishedWeekRaw(
+  leagueId: string,
+  seasonYear: number,
+  creds: EspnCredentials,
+  week: number
+): Promise<unknown> {
+  const url =
+    `${BASE}/${seasonYear}/segments/0/leagues/${leagueId}` +
+    `?view=mMatchupScore&view=mBoxscore&scoringPeriodId=${week}`;
+  const filter = { schedule: { filterMatchupPeriodIds: { value: [week] } } };
+  return espnRequest(url, creds, { "X-Fantasy-Filter": JSON.stringify(filter) }, true, 6 * 60 * 60);
+}
+
+/**
  * Fetches the NFL schedule for the season: every pro team's game (kickoff
  * time, whether stats are official) in each scoring period. Not
  * league-specific. Changes rarely, so it's cached for a day.

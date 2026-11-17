@@ -1,4 +1,5 @@
 import {
+  fetchFinishedWeekRaw,
   fetchLeagueRaw,
   fetchMatchupScoresRaw,
   fetchProScheduleRaw,
@@ -12,6 +13,7 @@ import {
   normalizePoolPlayer,
   normalizeProGames,
   normalizeWeekMatchups,
+  normalizeWeekResults,
   normalizeTeamWeeklyScores,
   normalizeWeeklyPoints,
 } from "./normalize";
@@ -34,6 +36,7 @@ import type {
   RankedPlayer,
   RosterPlayer,
   StarterRankInfo,
+  TeamExpectations,
   WeeklyPoints,
 } from "./types";
 
@@ -298,6 +301,77 @@ export async function getCumulativePoints(
         : "Unexpected error fetching the matchup schedule.";
     console.error(`[espn] failed to load matchup scores (league ${league.leagueId}):`, err);
     return { data: { weeks: [], series: [] }, error: message };
+  }
+}
+
+/**
+ * Each team's league record, expected wins, luck and points vs.
+ * projections over every completed week. One box-score fetch per week:
+ * the matchup-scores feed has final scores but not what each lineup was
+ * projected to score.
+ */
+export async function getTeamExpectations(
+  league: League,
+  isDemoData: boolean
+): Promise<{ expectations: Map<number, TeamExpectations>; error: string | null }> {
+  const lastCompletedWeek = league.currentWeek - 1;
+  const cfg = getLeagueConfigs().find((c) => c.id === league.leagueId);
+  if (isDemoData || !cfg || lastCompletedWeek < 1) {
+    return { expectations: new Map(), error: null };
+  }
+
+  const year = seasonYear();
+  const creds = { espnS2: cfg.espnS2, swid: cfg.swid };
+  try {
+    const weeks = Array.from({ length: lastCompletedWeek }, (_, i) => i + 1);
+    const results = await Promise.all(
+      weeks.map(async (week) =>
+        normalizeWeekResults(
+          await fetchFinishedWeekRaw(cfg.id, year, creds, week),
+          week,
+          year
+        )
+      )
+    );
+
+    const expectations = new Map<number, TeamExpectations>();
+    for (const team of league.teams) {
+      const e: TeamExpectations = {
+        teamId: team.id,
+        weeks: 0,
+        leagueWins: 0,
+        leagueLosses: 0,
+        leagueTies: 0,
+        expectedWins: 0,
+        luck: 0,
+        vsProjected: 0,
+        beatProjectedWeeks: 0,
+      };
+      for (const week of results) {
+        const mine = week.find((r) => r.teamId === team.id);
+        if (!mine) continue;
+        const others = week.filter((r) => r.teamId !== team.id);
+        const wins = others.filter((r) => mine.actual > r.actual).length;
+        const ties = others.filter((r) => mine.actual === r.actual).length;
+        e.weeks++;
+        e.leagueWins += wins;
+        e.leagueTies += ties;
+        e.leagueLosses += others.length - wins - ties;
+        e.expectedWins += others.length ? (wins + ties / 2) / others.length : 0;
+        e.vsProjected += mine.actual - mine.projected;
+        if (mine.actual > mine.projected) e.beatProjectedWeeks++;
+      }
+      e.expectedWins = Math.round(e.expectedWins * 10) / 10;
+      e.luck = Math.round((team.wins + team.ties / 2 - e.expectedWins) * 10) / 10;
+      e.vsProjected = Math.round(e.vsProjected * 10) / 10;
+      expectations.set(team.id, e);
+    }
+    return { expectations, error: null };
+  } catch (err) {
+    const message =
+      err instanceof EspnApiError ? err.message : "Unexpected error fetching past box scores.";
+    console.error(`[espn] failed to load past box scores (league ${league.leagueId}):`, err);
+    return { expectations: new Map(), error: message };
   }
 }
 

@@ -103,6 +103,22 @@ export interface CumulativePointsData {
   series: CumulativePointsSeries[];
 }
 
+// How a team has done against expectations over the completed weeks.
+// "League record" plays every team against every other team each week,
+// so it ignores who a team happened to face; expected wins is that
+// record scaled to one game a week, and luck is actual wins minus it.
+export interface TeamExpectations {
+  teamId: number;
+  weeks: number;
+  leagueWins: number;
+  leagueLosses: number;
+  leagueTies: number;
+  expectedWins: number;
+  luck: number; // actual wins (ties count half) minus expected wins
+  vsProjected: number; // points scored minus starters' projections, all weeks
+  beatProjectedWeeks: number;
+}
+
 export interface DashboardData {
   leagues: League[];
   isDemoData: boolean;

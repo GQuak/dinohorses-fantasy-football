@@ -1,4 +1,9 @@
-import { getCumulativePoints, getDashboardData, getTeamWeeklyPoints } from "@/lib/data";
+import {
+  getCumulativePoints,
+  getDashboardData,
+  getTeamExpectations,
+  getTeamWeeklyPoints,
+} from "@/lib/data";
 import DemoBanner, { ErrorBanner } from "@/components/DemoBanner";
 import StandingsView from "@/components/StandingsView";
 import WeekSelector from "@/components/WeekSelector";
@@ -62,11 +67,13 @@ export default async function StandingsPage({
     }
   }
 
-  const { data: cumulative, error: cumulativeError } = await getCumulativePoints(
-    league,
-    isDemoData
-  );
+  const [{ data: cumulative, error: cumulativeError }, { expectations, error: expectationsError }] =
+    await Promise.all([
+      getCumulativePoints(league, isDemoData),
+      getTeamExpectations(league, isDemoData),
+    ]);
   if (cumulativeError) pageErrors.push({ leagueName: league.name, message: cumulativeError });
+  if (expectationsError) pageErrors.push({ leagueName: league.name, message: expectationsError });
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -80,6 +87,7 @@ export default async function StandingsPage({
         league={league}
         week={week}
         weeklyTotals={weeklyTotals}
+        expectations={expectations}
         cumulative={cumulative}
       />
     </div>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   getDashboardData,
   getStartingLineupRanks,
+  getTeamExpectations,
   getTeamPositionStrength,
   getTeamWeeklyPoints,
 } from "@/lib/data";
@@ -17,6 +18,14 @@ import TradeNeedsCard from "@/components/TradeNeedsCard";
 import TeamFreeAgents, { TeamFreeAgentsLoading } from "@/components/TeamFreeAgents";
 import { getBestFits, getLeagueNeeds } from "@/lib/tradeNeeds";
 import type { RosterPlayer, WeeklyPoints } from "@/lib/types";
+
+const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}`;
+const signedClass = (n: number) =>
+  n > 0
+    ? "font-medium text-emerald-600 dark:text-emerald-400"
+    : n < 0
+      ? "font-medium text-rose-600 dark:text-rose-400"
+      : "";
 
 function PlayerRow({ player, weekly }: { player: RosterPlayer; weekly: WeeklyPoints }) {
   const avatarSrc =
@@ -165,6 +174,8 @@ export default async function TeamDetailPage({
     ) / 10;
 
   const leagueNeeds = getLeagueNeeds(league);
+  const { expectations } = await getTeamExpectations(league, isDemoData);
+  const expected = expectations.get(team.id);
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6">
@@ -186,11 +197,26 @@ export default async function TeamDetailPage({
         <div className="flex-1 sm:px-4">
           <AwardBadges teamName={team.name} />
         </div>
-        <p className="whitespace-nowrap text-sm text-neutral-500">
-          {team.wins}-{team.losses}
-          {team.ties ? `-${team.ties}` : ""}
-          {team.draftPosition && <> · Draft #{team.draftPosition}</>}
-        </p>
+        <div className="text-sm text-neutral-500 sm:text-right">
+          <p className="whitespace-nowrap">
+            {team.wins}-{team.losses}
+            {team.ties ? `-${team.ties}` : ""}
+            {team.draftPosition && <> · Draft #{team.draftPosition}</>}
+          </p>
+          {expected && expected.weeks > 0 && (
+            <p
+              className="whitespace-nowrap text-xs"
+              title="League record plays every team against every other team each week. Luck is actual wins minus the wins that record would give. vs proj is points scored minus the starters' projections."
+            >
+              League {expected.leagueWins}-{expected.leagueLosses}
+              {expected.leagueTies ? `-${expected.leagueTies}` : ""} · Luck{" "}
+              <span className={signedClass(expected.luck)}>{signed(expected.luck)}</span> · vs proj{" "}
+              <span className={signedClass(expected.vsProjected)}>
+                {signed(expected.vsProjected)}
+              </span>
+            </p>
+          )}
+        </div>
       </div>
 
       {weeklyError && <ErrorBanner errors={[{ leagueName: "Weekly stats", message: weeklyError }]} />}
